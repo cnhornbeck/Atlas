@@ -5,32 +5,25 @@ using System.IO;
 
 public class Test : MonoBehaviour
 {
-    int chunkSize = ChunkConstants.chunkSize;
 
-    #region Perlin Noise Variables
-    [Header("Perlin Noise Variables")]
-    [SerializeField] float xOffset = 0;
-    [SerializeField] float yOffset = 0;
-    [Space]
-    [SerializeField] int seed;
-    // [SerializeField] float heightMultiplier = 1f;
-    [SerializeField][Range(0.01f, 20f)] float scale = 1.0f;
-    [SerializeField][Range(1f, 5f)] float lacunarity = 1.0f;
-    [SerializeField][Range(0.01f, 1f)] float persistence = 1.0f;
-    [SerializeField][Range(1f, 10f)] int octaves = 2;
-    [SerializeField] List<TerrainLevel> colorList = new List<TerrainLevel>();
+    #region Noise Variables
+
+    [SerializeField] NoiseSettings noiseSettings;
+
+    [SerializeField] List<TerrainLevel> colorList = new();
     #endregion
 
     MeshRenderer planeTex;
 
     void Start()
     {
+        noiseSettings = NoiseSettings.CreateDefault();
         planeTex = GetComponent<MeshRenderer>();
     }
 
     void Update()
     {
-        Texture2D terrainTex = TextureGen.GenerateTexture(chunkSize, xOffset, yOffset, scale, lacunarity, persistence, octaves, seed, colorList);
+        Texture2D terrainTex = TextureGen.GenerateTexture(noiseSettings, colorList);
 
         if (Input.GetKeyDown(KeyCode.P)) // Example: Press P to start capture
         {
@@ -49,7 +42,7 @@ public class Test : MonoBehaviour
     IEnumerator CaptureTextureProcess()
     {
         // Capture the texture
-        Texture2D terrainTex = TextureGen.GenerateTexture(chunkSize, xOffset, yOffset, scale, lacunarity, persistence, octaves, seed, colorList);
+        Texture2D terrainTex = TextureGen.GenerateTexture(noiseSettings, colorList);
 
         // Apply texture settings
         terrainTex.filterMode = FilterMode.Point;

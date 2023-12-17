@@ -71,10 +71,10 @@ public class MeshGen
     }
 
     // This method generates the mesh
-    public Mesh GenerateMesh(int chunkSize, float xOffset, float yOffset, int seed, float heightMultiplier, float scale, float lacunarity, float persistence, int octaves, float vertSep, float waterHeight)
+    public Mesh GenerateMesh(NoiseSettings noiseSettings, float heightMultiplier, float vertSep, float waterHeight)
     {
         // Generate the height array
-        float[] heightArray = NoiseGen.GeneratePerlinNoise(chunkSize, xOffset, yOffset, scale, lacunarity, persistence, octaves, seed);
+        float[] heightArray = NoiseGen.GeneratePerlinNoise(noiseSettings);
 
         // Create the terrain mesh and set its properties
         Mesh terrainMesh = new()
@@ -84,10 +84,10 @@ public class MeshGen
         };
 
         // Generate the mesh vertices
-        Vector3[] verts = GenerateMeshVertices(heightArray, chunkSize, vertSep, heightMultiplier, waterHeight);
+        Vector3[] verts = GenerateMeshVertices(heightArray, noiseSettings.chunkSize, vertSep, heightMultiplier, waterHeight);
 
         // Generate the triangles
-        int[] triangles = GenerateMeshTriangles(chunkSize);
+        int[] triangles = GenerateMeshTriangles(noiseSettings.chunkSize);
 
 
         // Set the mesh vertices, triangles, and normals

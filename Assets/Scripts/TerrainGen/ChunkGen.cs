@@ -11,7 +11,7 @@ public class ChunkGen
 
     void GenerateChunk()
     {
-        
+
     }
 
     // public void GenerateTerrain(int chunkSize, float xAdjustment, float yAdjustment, int seed, float heightMultiplier, float scale, float lacunarity, float persistence, int octaves, float vertSep, float waterHeight, GameObject player, TextureGen texGenerator, GameObject parent, List<TerrainLevel> colorList)
@@ -131,7 +131,7 @@ public class ChunkGen
         Debug.Log("Clearing cached chunks");
         foreach (GameObject item in terrainChunksList)
         {
-            GameObject.DestroyImmediate(item);
+            GameObject.Destroy(item);
         }
         terrainChunksHash.Clear();
         terrainChunksList.Clear();

@@ -4,10 +4,12 @@ using UnityEngine;
 public class TextureGen
 {
 
-    public static Texture2D GenerateTexture(int chunkSize, float xOffset, float yOffset, float scale, float lacunarity, float persistence, int octaves, int seed, List<TerrainLevel> colorList)
+    // GenerateTexture(int chunkSize, float xOffset, float yOffset, float scale, float lacunarity, float persistence, int octaves, int seed, List<TerrainLevel> colorList)
+
+    public static Texture2D GenerateTexture(NoiseSettings noiseSettings, List<TerrainLevel> colorList)
     {
-        Texture2D output = new(chunkSize, chunkSize);
-        output.SetPixels(ColorMapper(NoiseGen.GeneratePerlinNoise(chunkSize, xOffset, yOffset, scale, lacunarity, persistence, octaves, seed), colorList));
+        Texture2D output = new(noiseSettings.chunkSize, noiseSettings.chunkSize);
+        output.SetPixels(ColorMapper(NoiseGen.GeneratePerlinNoise(noiseSettings), colorList));
         return output;
     }
 
