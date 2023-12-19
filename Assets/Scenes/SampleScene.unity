@@ -328,7 +328,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1298867226
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -341,17 +341,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d09c8dffffff76811b880ee52f2f3071, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  xOffset: 0
-  yOffset: 0
-  seed: 0
-  scale: 20
-  lacunarity: 3.2
-  persistence: 0.25
-  octaves: 5
+  noiseSettings:
+    chunkSize: 0
+    xOffset: 0
+    yOffset: 0
+    scale: 0
+    lacunarity: 0
+    persistence: 0
+    octaves: 0
+    seed: 0
   colorList:
   - name: Water
-    colorStart: {r: 0, g: 0.7156651, b: 1, a: 1}
-    colorStop: {r: 0, g: 1, b: 0.6543071, a: 1}
+    colorStart: {r: 0.0010565, g: 0.47465137, b: 0.78816885, a: 1}
+    colorStop: {r: 0.6901961, g: 1, b: 0.8756593, a: 1}
     gradient:
       serializedVersion: 2
       m_Curve:
@@ -376,11 +378,10 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    maxHeight: 0.2
-    previousHeight: 0
+    maxHeight: 0.15
   - name: Sand
-    colorStart: {r: 1, g: 0.96268505, b: 0, a: 1}
-    colorStop: {r: 0.44235596, g: 0.5140519, b: 0.21754289, a: 1}
+    colorStart: {r: 1, g: 0.9866642, b: 0.68883127, a: 1}
+    colorStop: {r: 1, g: 0.9810364, b: 0.50062644, a: 1}
     gradient:
       serializedVersion: 2
       m_Curve:
@@ -405,11 +406,10 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    maxHeight: 0.25
-    previousHeight: 0
+    maxHeight: 0.18
   - name: Land
-    colorStart: {r: 0.30000344, g: 0.7358099, b: 0, a: 1}
-    colorStop: {r: 0, g: 0.5980178, b: 0.08442604, a: 1}
+    colorStart: {r: 0.28516132, g: 0.8468052, b: 0.12981296, a: 1}
+    colorStop: {r: 0.07622384, g: 0.60979074, b: 0, a: 1}
     gradient:
       serializedVersion: 2
       m_Curve:
@@ -434,10 +434,9 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    maxHeight: 0.7
-    previousHeight: 0
+    maxHeight: 0.6
   - name: Rock
-    colorStart: {r: 0.7245345, g: 0.7245345, b: 0.7245345, a: 1}
+    colorStart: {r: 0.403037, g: 0.403037, b: 0.403037, a: 1}
     colorStop: {r: 0.27830762, g: 0.27830762, b: 0.27830762, a: 1}
     gradient:
       serializedVersion: 2
@@ -463,10 +462,9 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    maxHeight: 0.8
-    previousHeight: 0
+    maxHeight: 0.85
   - name: Snow
-    colorStart: {r: 1, g: 1, b: 1, a: 1}
+    colorStart: {r: 0.767448, g: 0.767448, b: 0.767448, a: 1}
     colorStop: {r: 1, g: 1, b: 1, a: 1}
     gradient:
       serializedVersion: 2
@@ -493,7 +491,7 @@ MonoBehaviour:
       m_PostInfinity: 2
       m_RotationOrder: 4
     maxHeight: 1
-    previousHeight: 0
+  levelOfDetail: 0
 --- !u!64 &1298867227
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -574,6 +572,201 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1298867225}
   serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
+  m_LocalPosition: {x: 0, y: 1.01, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
+--- !u!1 &1350051167
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1350051169}
+  - component: {fileID: 1350051168}
+  m_Layer: 0
+  m_Name: ChunkGen
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1350051168
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1350051167}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be97d6f0d5e203016aed2a9794f65464, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  renderDistance: 20
+  noiseSettings:
+    chunkSize: 0
+    xOffset: 0
+    yOffset: 0
+    scale: 0
+    lacunarity: 0
+    persistence: 0
+    octaves: 0
+    seed: 0
+  colorList:
+  - name: Water
+    colorStart: {r: 0.0010565, g: 0.47465137, b: 0.78816885, a: 1}
+    colorStop: {r: 0.6901961, g: 1, b: 0.8756593, a: 1}
+    gradient:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    maxHeight: 0.31
+  - name: Sand
+    colorStart: {r: 1, g: 0.9866642, b: 0.68883127, a: 1}
+    colorStop: {r: 1, g: 0.9810364, b: 0.50062644, a: 1}
+    gradient:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    maxHeight: 0.33
+  - name: Land
+    colorStart: {r: 0.28516132, g: 0.8468052, b: 0.12981296, a: 1}
+    colorStop: {r: 0.07622384, g: 0.60979074, b: 0, a: 1}
+    gradient:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    maxHeight: 0.58
+  - name: Rock
+    colorStart: {r: 0.403037, g: 0.403037, b: 0.403037, a: 1}
+    colorStop: {r: 0.27830762, g: 0.27830762, b: 0.27830762, a: 1}
+    gradient:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    maxHeight: 0.7
+  - name: Snow
+    colorStart: {r: 0.767448, g: 0.767448, b: 0.767448, a: 1}
+    colorStop: {r: 1, g: 1, b: 1, a: 1}
+    gradient:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    maxHeight: 1
+--- !u!4 &1350051169
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1350051167}
+  serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
@@ -588,3 +781,4 @@ SceneRoots:
   - {fileID: 963194228}
   - {fileID: 705507995}
   - {fileID: 1298867230}
+  - {fileID: 1350051169}

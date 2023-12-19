@@ -7,10 +7,10 @@ public class MeshGen
 {
     // This method generates the triangle indices for the mesh
     // The width and height parameters represent the number of vertices in each dimension
-    private int[] GenerateMeshTriangles(int chunkSize)
+    private static int[] GenerateMeshTriangles(int vertexNum)
     {
         // Calculate the total number of triangles needed for the mesh
-        int numTriangles = 6 * (chunkSize - 1) * (chunkSize - 1);
+        int numTriangles = 6 * (vertexNum - 1) * (vertexNum - 1);
         // Create an array to hold the triangle indices
         int[] triangles = new int[numTriangles];
 
@@ -20,15 +20,15 @@ public class MeshGen
         {
             // If j is not at the right edge of the terrain, create two triangles for the square. 
             // The right edge of the terrain should not have triangles added to it.
-            if ((j) % chunkSize != (chunkSize - 1))
+            if (j % vertexNum != (vertexNum - 1))
             {
                 // Add the indices for the two triangles in the square to the array.
                 triangles[i++] = j;
-                triangles[i++] = j + chunkSize + 1;
+                triangles[i++] = j + vertexNum + 1;
                 triangles[i++] = j + 1;
                 triangles[i++] = j;
-                triangles[i++] = j + chunkSize;
-                triangles[i++] = j + chunkSize + 1;
+                triangles[i++] = j + vertexNum;
+                triangles[i++] = j + vertexNum + 1;
             }
             j++;
         }
@@ -39,31 +39,33 @@ public class MeshGen
 
     // This function takes in an array of height values, the width and height of the mesh, the vertical separation between vertices, 
     // the height multiplier, and the water height, and returns an array of Vector3 objects representing the vertices of the mesh.
-    private Vector3[] GenerateMeshVertices(float[] heightArray, int chunkSize, float vertSep, float heightMultiplier, float waterHeight)
+    private static Vector3[] GenerateMeshVertices(float[] heightArray, int vertexNum, float heightMultiplier)
     {
         // Get the length of the height array, which is the number of vertices in the mesh.
         int size = heightArray.Length;
 
+        // Calculate vertex separation length
+        float vertSep = (ChunkGlobals.worldSpaceChunkSize + ChunkGlobals.worldSpaceChunkSize / ChunkGlobals.chunkSize) / vertexNum;
 
         // Create a new array to hold the vertex positions.
         Vector3[] verts = new Vector3[size];
 
         // Calculate the half-width and half-height of the mesh.
-        float halfChunkSize = vertSep * chunkSize / 2;
+        float halfChunkSize = vertSep * vertexNum / 2;
 
         // Loop through each vertex in the mesh.
         for (int i = 0; i < size; i++)
         {
             // Calculate the y-position of the vertex based on the height value and the water height.
             // The Mathf.Max function ensures that the y-position is at least the water height, so that the water surface is visible.
-            float y = Mathf.Max(waterHeight, heightArray[i]) * heightMultiplier;
+            float y = heightArray[i] * heightMultiplier;
 
             // Calculate the x and z positions of the vertex based on the index i and the width and vertical separation of the mesh.
             // The % and / operators are used to calculate the row and column of the vertex.
             verts[i] = new Vector3(
-                vertSep * (i % chunkSize) - halfChunkSize,
+                vertSep * (i % vertexNum) - halfChunkSize,
                 y,
-                vertSep * (i / chunkSize) - halfChunkSize);
+                vertSep * (i / vertexNum) - halfChunkSize);
         }
 
         // Return the array of vertex positions.
@@ -71,10 +73,10 @@ public class MeshGen
     }
 
     // This method generates the mesh
-    public Mesh GenerateMesh(NoiseSettings noiseSettings, float heightMultiplier, float vertSep, float waterHeight)
+    public static Mesh GenerateMesh(float[] heightArray, float heightMultiplier)
     {
-        // Generate the height array
-        float[] heightArray = NoiseGen.GeneratePerlinNoise(noiseSettings);
+        // Generate vertex number
+        int vertexNum = (int)Mathf.Sqrt(heightArray.Length);
 
         // Create the terrain mesh and set its properties
         Mesh terrainMesh = new()
@@ -84,11 +86,10 @@ public class MeshGen
         };
 
         // Generate the mesh vertices
-        Vector3[] verts = GenerateMeshVertices(heightArray, noiseSettings.chunkSize, vertSep, heightMultiplier, waterHeight);
+        Vector3[] verts = GenerateMeshVertices(heightArray, vertexNum, heightMultiplier);
 
         // Generate the triangles
-        int[] triangles = GenerateMeshTriangles(noiseSettings.chunkSize);
-
+        int[] triangles = GenerateMeshTriangles(vertexNum);
 
         // Set the mesh vertices, triangles, and normals
         terrainMesh.SetVertices(verts);

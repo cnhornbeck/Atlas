@@ -9,26 +9,28 @@ public class Test : MonoBehaviour
     #region Noise Variables
 
     [SerializeField] NoiseSettings noiseSettings;
-
     [SerializeField] List<TerrainLevel> colorList = new();
     #endregion
 
     MeshRenderer planeTex;
+    float[] heightArray;
+    [SerializeField] int levelOfDetail;
 
     void Start()
     {
         noiseSettings = NoiseSettings.CreateDefault();
         planeTex = GetComponent<MeshRenderer>();
+        StartCoroutine(SetHeightArray());
     }
 
-    void Update()
-    {
-        Texture2D terrainTex = TextureGen.GenerateTexture(noiseSettings, colorList);
+    // void Update()
+    // {
 
-        if (Input.GetKeyDown(KeyCode.P)) // Example: Press P to start capture
-        {
-            StartCoroutine(CaptureTextureProcess());
-        }
+    // }
+
+    void UpdateTexture()
+    {
+        Texture2D terrainTex = TextureGen.GenerateTexture(heightArray, colorList);
 
         planeTex.material.mainTexture = terrainTex;
         planeTex.material.SetFloat("_Glossiness", 0.0f);
@@ -36,13 +38,22 @@ public class Test : MonoBehaviour
         terrainTex.filterMode = FilterMode.Point;
         terrainTex.wrapMode = TextureWrapMode.Clamp;
         terrainTex.Apply();
+    }
 
+    IEnumerator SetHeightArray()
+    {
+        while (true)
+        {
+            heightArray = NoiseGen.GeneratePerlinNoise(noiseSettings, ChunkGlobals.lodNumArray[levelOfDetail]);
+            UpdateTexture(); // Update the texture after heightArray is generated
+            yield return new WaitForSeconds(0.3f);
+        }
     }
 
     IEnumerator CaptureTextureProcess()
     {
         // Capture the texture
-        Texture2D terrainTex = TextureGen.GenerateTexture(noiseSettings, colorList);
+        Texture2D terrainTex = TextureGen.GenerateTexture(heightArray, colorList);
 
         // Apply texture settings
         terrainTex.filterMode = FilterMode.Point;
