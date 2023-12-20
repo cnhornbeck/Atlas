@@ -32,10 +32,12 @@ public class Chunk : MonoBehaviour
         // Set Pos
         this.position = position;
 
+        // int chunkSize = Mathf.Max((ChunkGlobals.chunkSize + 1) / levelOfDetail, 1);
+
         float xTerm = noiseSettings.scale * (position.x / ChunkGlobals.worldSpaceChunkSize);
         float yTerm = noiseSettings.scale * (position.y / ChunkGlobals.worldSpaceChunkSize);
-        noiseSettings.xOffset = xTerm * (1f - (1f / ChunkGlobals.chunkSize));
-        noiseSettings.yOffset = yTerm * (1f - (1f / ChunkGlobals.chunkSize));
+        noiseSettings.xOffset = xTerm * (1f - (1f / (ChunkGlobals.chunkSize + 1)));
+        noiseSettings.yOffset = yTerm * (1f - (1f / (ChunkGlobals.chunkSize + 1)));
 
         // Set Textures and LODs
         for (int i = 0; i < ChunkGlobals.lodNumArray.Length; i++)
@@ -43,26 +45,28 @@ public class Chunk : MonoBehaviour
             // Generate height values for chunk for this level of detail
             float[] heightArray = NoiseGen.GeneratePerlinNoise(noiseSettings, ChunkGlobals.lodNumArray[i]);
 
-            centerVertHeight = heightArray[heightArray.Length / 2];
+            centerVertHeight = heightArray[heightArray.Length / 2] * heightMultiplier;
 
             // Set meshes and textures for this level of detail
-            lodMeshList[i] = MeshGen.GenerateMesh(heightArray, heightMultiplier);
+            lodMeshList[i] = MeshGen.GenerateMesh(heightArray, centerVertHeight, heightMultiplier);
             CalcUVs(lodMeshList[i], heightArray);
 
             lodTextureList[i] = TextureGen.GenerateTexture(heightArray, colorList);
         }
 
+        Vector3 worldPosition = new(position.x, 0, position.y);
+
+        // Now, adjust the parent's position.
+        // We are setting the parent's position directly to the world position we calculated.
+        parent.transform.position = worldPosition;
+
         meshFilter = GetComponent<MeshFilter>();
-        // meshFilter.mesh = lodMeshList[0];
         currentMesh = lodMeshList[0];
         SetMesh(meshFilter, currentMesh);
 
         meshRenderer = GetComponent<MeshRenderer>();
         currentTexture = lodTextureList[0];
         SetTexture(currentTexture);
-
-        parent.transform.position = new Vector3(position.x, 1, position.y);
-        // Debug.Log(parent.transform.position.x);
     }
 
     public void CalcUVs(Mesh mesh, float[] heightArray)
@@ -75,7 +79,7 @@ public class Chunk : MonoBehaviour
         {
             for (int x = 0; x < size; x++)
             {
-                uvs[index] = new Vector2((float)x / (float)size, (float)y / (float)size);
+                uvs[index] = new Vector2(x / (float)size, y / (float)size);
                 index++;
             }
         }

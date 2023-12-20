@@ -68,7 +68,7 @@ public class ChunkGen : MonoBehaviour
         // Calculate Euclidean distance from the center
         float dx = x - currentPosition.x;
         float dy = y - currentPosition.y;
-        return dx * dx + dy * dy <= radius * radius;
+        return dx * dx + dy * dy < radius * radius;
     }
 
     public void CalcUVs(int width, int height, GameObject terrain)
@@ -81,7 +81,7 @@ public class ChunkGen : MonoBehaviour
         {
             for (int x = 0; x < width; x++)
             {
-                uvs[index] = new Vector2((float)x / (float)width, (float)y / (float)height);
+                uvs[index] = new Vector2(x / (float)width, y / (float)height);
                 index++;
             }
         }
@@ -99,6 +99,4 @@ public class ChunkGen : MonoBehaviour
         chunksHash.Clear();
         chunksList.Clear();
     }
-
-
 }

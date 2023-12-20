@@ -6,7 +6,7 @@ public class NoiseGen
     public static float[] GeneratePerlinNoise(NoiseSettings noiseSettings, int levelOfDetail)
     {
         // Set level of detail corrected chunkSize
-        int chunkSize = (ChunkGlobals.chunkSize + 1) / levelOfDetail;
+        int chunkSize = Mathf.Max((ChunkGlobals.chunkSize + 1) / levelOfDetail, 1);
 
         // Create a new 2D array to hold the output noise values
         float[] output = new float[chunkSize * chunkSize];
@@ -21,8 +21,8 @@ public class NoiseGen
         // Generate Perlin noise for each octave
         for (int i = 0; i < noiseSettings.octaves; i++)
         {
-            int randomIntX = random.Next(-1000, 1000);
-            int randomIntY = random.Next(-1000, 1000);
+            int randomIntX = random.Next(-100, 100);
+            int randomIntY = random.Next(-100, 100);
 
             // Loop over each pixel in the output array
             for (int y = 0; y < chunkSize; y++)
@@ -45,7 +45,7 @@ public class NoiseGen
         }
 
 
-        // Normalize the output values so they range from 0 to 1
+        // Normalize the output values so they range from 0 to 1 then adjust the range to be between -1 and 1
         for (int y = 0; y < chunkSize; y++)
         {
             for (int x = 0; x < chunkSize; x++)
