@@ -30,7 +30,7 @@ public class Test : MonoBehaviour
 
     void UpdateTexture()
     {
-        Texture2D terrainTex = TextureGen.GenerateTexture(heightArray, colorList);
+        Texture2D terrainTex = TextureGenerator.GenerateTexture(heightArray, colorList);
 
         planeTex.material.mainTexture = terrainTex;
         planeTex.material.SetFloat("_Glossiness", 0.0f);
@@ -44,7 +44,7 @@ public class Test : MonoBehaviour
     {
         while (true)
         {
-            heightArray = NoiseGen.GeneratePerlinNoise(noiseSettings, ChunkGlobals.lodNumArray[levelOfDetail]);
+            heightArray = NoiseGenerator.GeneratePerlinNoise(noiseSettings, ChunkGlobals.lodNumArray[levelOfDetail]);
             UpdateTexture(); // Update the texture after heightArray is generated
             yield return new WaitForSeconds(0.3f);
         }
@@ -53,7 +53,7 @@ public class Test : MonoBehaviour
     IEnumerator CaptureTextureProcess()
     {
         // Capture the texture
-        Texture2D terrainTex = TextureGen.GenerateTexture(heightArray, colorList);
+        Texture2D terrainTex = TextureGenerator.GenerateTexture(heightArray, colorList);
 
         // Apply texture settings
         terrainTex.filterMode = FilterMode.Point;

@@ -1,93 +1,97 @@
 using UnityEngine;
 
-public class NoiseGen
+public class NoiseGenerator
 {
-    // Generates a 2D array of Perlin noise values with the given parameters
-    public static float[] GeneratePerlinNoise(NoiseSettings noiseSettings, int levelOfDetail)
+    // Generates a 2D array of Perlin noise values with the given settings and detail level
+    public static float[] GeneratePerlinNoise(NoiseSettings settings, int detailLevel)
     {
-        // Set level of detail corrected chunkSize
-        int chunkSize = Mathf.Max((ChunkGlobals.chunkSize + 1) / levelOfDetail, 1);
+        int adjustedChunkSize = CalculateAdjustedChunkSize(detailLevel);
+        float[] noiseMap = new float[adjustedChunkSize * adjustedChunkSize];
 
-        // Create a new 2D array to hold the output noise values
-        float[] output = new float[chunkSize * chunkSize];
+        // Generate and apply Perlin noise
+        float maxPossibleHeight = ApplyPerlinNoise(settings, adjustedChunkSize, ref noiseMap);
 
-        System.Random random = new(noiseSettings.seed);
+        // Normalize noise map values
+        NormalizeNoiseMap(adjustedChunkSize, ref noiseMap, maxPossibleHeight);
 
-        // Initialize variables for tracking the amplitude and current amplitude and frequency for each octave
-        float maxAmplitude = 0;
+        return noiseMap;
+    }
+
+    private static int CalculateAdjustedChunkSize(int detailLevel)
+    {
+        return Mathf.Max((ChunkGlobals.ChunkSize + 1) / detailLevel, 1);
+    }
+
+    private static float ApplyPerlinNoise(NoiseSettings settings, int chunkSize, ref float[] noiseMap)
+    {
+        System.Random random = new System.Random(settings.Seed);
+        float maxPossibleHeight = 0;
         float amplitude = 1;
         float frequency = 1;
 
-        // Generate Perlin noise for each octave
-        for (int i = 0; i < noiseSettings.octaves; i++)
+        for (int octave = 0; octave < settings.Octaves; octave++)
         {
-            int randomIntX = random.Next(-100, 100);
-            int randomIntY = random.Next(-100, 100);
+            int randomX = random.Next(-100, 100);
+            int randomY = random.Next(-100, 100);
 
-            // Loop over each pixel in the output array
             for (int y = 0; y < chunkSize; y++)
             {
                 for (int x = 0; x < chunkSize; x++)
                 {
-                    float xCoord = ((float)x / chunkSize * noiseSettings.scale + noiseSettings.xOffset + randomIntX * amplitude) * frequency;
-                    float yCoord = ((float)y / chunkSize * noiseSettings.scale + noiseSettings.yOffset + randomIntY * amplitude) * frequency;
+                    float sampleX = (x / (float)chunkSize * settings.Scale + settings.XOffset + randomX * amplitude) * frequency;
+                    float sampleY = (y / (float)chunkSize * settings.Scale + settings.YOffset + randomY * amplitude) * frequency;
 
-                    // Calculate the Perlin noise value for the current pixel at the current octave
-                    output[y * chunkSize + x] += Mathf.PerlinNoise(xCoord, yCoord) * amplitude;
+                    noiseMap[y * chunkSize + x] += Mathf.PerlinNoise(sampleX, sampleY) * amplitude;
                 }
             }
 
-
-            // Update the maximum amplitude and current amplitude and frequency for the next octave
-            maxAmplitude += amplitude;
-            amplitude *= noiseSettings.persistence;
-            frequency *= noiseSettings.lacunarity;
+            maxPossibleHeight += amplitude;
+            amplitude *= settings.Persistence;
+            frequency *= settings.Lacunarity;
         }
 
+        return maxPossibleHeight;
+    }
 
-        // Normalize the output values so they range from 0 to 1 then adjust the range to be between -1 and 1
+    private static void NormalizeNoiseMap(int chunkSize, ref float[] noiseMap, float maxPossibleHeight)
+    {
         for (int y = 0; y < chunkSize; y++)
         {
             for (int x = 0; x < chunkSize; x++)
             {
-                output[y * chunkSize + x] = Mathf.Clamp(output[y * chunkSize + x] / maxAmplitude, 0f, 1f);
-                // output[y * chunkSize + x] = (output[y * chunkSize + x] - minAmplitude) / (maxAmplitude - minAmplitude);
+                noiseMap[y * chunkSize + x] = Mathf.Clamp(noiseMap[y * chunkSize + x] / maxPossibleHeight, 0f, 1f);
             }
         }
-
-        // Return the completed Perlin noise array
-        return output;
     }
 }
-
 
 [System.Serializable]
 public struct NoiseSettings
 {
-    [HideInInspector] public int chunkSize;
-    public float xOffset;
-    public float yOffset;
+    [HideInInspector] public int ChunkSize;
+    public float XOffset;
+    public float YOffset;
     [Space]
-    [Range(0.01f, 20f)] public float scale;
-    [Range(1f, 5f)] public float lacunarity;
-    [Range(0.01f, 1f)] public float persistence;
-    [Range(1f, 10f)] public int octaves;
-    public int seed;
+    [Range(0.01f, 20f)] public float Scale;
+    [Range(1f, 5f)] public float Lacunarity;
+    [Range(0.01f, 1f)] public float Persistence;
+    [Range(1, 10)] public int Octaves;
+    public int Seed;
 
     // Initialize fields with default values
     public NoiseSettings(int dummy)
     {
-        chunkSize = ChunkGlobals.chunkSize;
-        xOffset = 0f;
-        yOffset = 0f;
-        scale = 0.3f;
-        lacunarity = 2f;
-        persistence = 0.3f;
-        octaves = 7;
-        seed = 0;
+        ChunkSize = ChunkGlobals.ChunkSize;
+        XOffset = 0f;
+        YOffset = 0f;
+        Scale = 0.3f;
+        Lacunarity = 2f;
+        Persistence = 0.3f;
+        Octaves = 7;
+        Seed = 0;
     }
 
-    // Static factory method
+    // Static factory method for default settings
     public static NoiseSettings CreateDefault()
     {
         return new NoiseSettings(0);

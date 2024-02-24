@@ -2,54 +2,57 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class TextureGen
+public class TextureGenerator
 {
-
-    // GenerateTexture(int chunkSize, float xOffset, float yOffset, float scale, float lacunarity, float persistence, int octaves, int seed, List<TerrainLevel> colorList)
-
-    public static Texture2D GenerateTexture(float[] heightArray, List<TerrainLevel> colorList)
+    public static Texture2D GenerateTexture(float[] heightArray, List<TerrainLevel> terrainLevels)
     {
-        int outputSize = (int)Mathf.Sqrt(heightArray.Length);
+        int textureSize = (int)Mathf.Sqrt(heightArray.Length);
 
-        Texture2D output = new(outputSize, outputSize);
-        output.SetPixels(ColorMapper(heightArray, colorList));
-        return output;
+        Texture2D texture = new Texture2D(textureSize, textureSize)
+        {
+            filterMode = FilterMode.Point, // Ensures sharp edges, important for pixel art or blocky styles
+            wrapMode = TextureWrapMode.Clamp // Prevents texture from tiling
+        };
+
+        texture.SetPixels(MapColorsToHeight(heightArray, terrainLevels));
+        texture.Apply(); // Apply changes to the texture
+
+        return texture;
     }
 
-
-    public static Color[] ColorMapper(float[] heightArray, List<TerrainLevel> colorList)
+    private static Color[] MapColorsToHeight(float[] heightArray, List<TerrainLevel> terrainLevels)
     {
-        Color[] output = new Color[heightArray.Length];
+        Color[] colorMap = new Color[heightArray.Length];
 
         for (int i = 0; i < heightArray.Length; i++)
         {
-            float previousHeight = 0;
+            float previousHeight = 0f;
 
-            foreach (TerrainLevel lvl in colorList)
+            foreach (TerrainLevel level in terrainLevels)
             {
-                if (heightArray[i] <= lvl.maxHeight)
+                if (heightArray[i] <= level.MaxHeight)
                 {
-                    // output[i] = new Color(heightArray[i], heightArray[i], heightArray[i]);
-                    output[i] = Color.Lerp(lvl.colorStart, lvl.colorStop, lvl.gradient.Evaluate((heightArray[i] - previousHeight) / (lvl.maxHeight - previousHeight)));
+                    float heightDifference = level.MaxHeight - previousHeight;
+                    float normalizedHeight = (heightArray[i] - previousHeight) / heightDifference;
+
+                    colorMap[i] = Color.Lerp(level.ColorStart, level.ColorEnd, level.Gradient.Evaluate(normalizedHeight));
                     break;
                 }
 
-                previousHeight = lvl.maxHeight;
+                previousHeight = level.MaxHeight;
             }
         }
 
-        return output;
+        return colorMap;
     }
-
 }
 
-[System.Serializable]
+[Serializable]
 public struct TerrainLevel
 {
-    public string name;
-    public Color colorStart;
-    public Color colorStop;
-    public AnimationCurve gradient;
-    [Range(0f, 1f)] public float maxHeight;
+    public string Name;
+    public Color ColorStart;
+    public Color ColorEnd;
+    public AnimationCurve Gradient;
+    [Range(0f, 1f)] public float MaxHeight;
 }
-

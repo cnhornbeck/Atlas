@@ -1,4 +1,5 @@
-public static class ChunkGlobals
+using UnityEngine;
+public class ChunkGlobals : MonoBehaviour
 {
     public const int lodNumSize = 4;
     // Controls the resolution at which the noise is to be generated. lodNum of 2 means half resolution.
@@ -6,7 +7,7 @@ public static class ChunkGlobals
     // Controls distances at which the next level of detail will be used
     public static readonly int[] lodDistArray = new int[lodNumSize - 1] { 50, 100, 200 };
     // Size of chunks measured by pixel length
-    public const int chunkSize = 16;
-    public const float worldSpaceChunkSize = 10;
-    public static int renderDistance = 5;
+    public const int ChunkSize = 16;
+    public const float worldSpaceChunkSize = 32;
+    public static int renderDistance = 10;
 }

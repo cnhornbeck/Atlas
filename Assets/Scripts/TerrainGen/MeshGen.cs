@@ -1,8 +1,4 @@
-using System.Collections.Generic;
-using System.Collections;
 using UnityEngine;
-using Unity.VisualScripting;
-
 
 public class MeshGen
 {
@@ -46,12 +42,12 @@ public class MeshGen
         int size = heightArray.Length;
 
         // Calculate vertex separation length
-        float vertSep = (ChunkGlobals.worldSpaceChunkSize + ChunkGlobals.worldSpaceChunkSize / ChunkGlobals.chunkSize) / vertexNum;
+        float vertSep = (ChunkGlobals.worldSpaceChunkSize + ChunkGlobals.worldSpaceChunkSize / ChunkGlobals.ChunkSize) / vertexNum;
 
         // Create a new array to hold the vertex positions.
         Vector3[] verts = new Vector3[size];
 
-        // Calculate the half-width and half-height of the mesh.
+        // Calculate the half-width of the mesh.
         float halfChunkSize = vertSep * vertexNum / 2;
 
         // Loop through each vertex in the mesh.

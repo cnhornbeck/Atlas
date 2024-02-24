@@ -7,51 +7,62 @@ using UnityEngine;
 public class Chunk : MonoBehaviour
 {
     public int id = -1;
-    public Vector2 position { get; set; } = Vector2.zero;
-    public Mesh[] lodMeshList { get; set; } = new Mesh[ChunkGlobals.lodNumSize];
-    public Texture2D[] lodTextureList { get; set; } = new Texture2D[ChunkGlobals.lodNumSize];
-    public MeshCollider hitbox { get; set; } = new();
+    public Vector2 Position { get; set; } = Vector2.zero;
+    public Bounds Bounds { get; set; } = new();
+    public Mesh[] LodMeshList { get; set; } = new Mesh[ChunkGlobals.lodNumSize];
+    public Texture2D[] LodTextureList { get; set; } = new Texture2D[ChunkGlobals.lodNumSize];
+    public MeshCollider Hitbox { get; set; } = new();
     public enum ChunkState
     {
-        NotGenerated,
-        Generated,
-        Generating,
-        NeedsUpdating
+        Visible,
+        NotVisible
     }
 
-    public ChunkState chunkState { get; set; } = ChunkState.NotGenerated;
-
+    public ChunkState chunkState { get; set; } = ChunkState.Visible;
     MeshFilter meshFilter;
     Mesh currentMesh;
     MeshRenderer meshRenderer;
     Texture2D currentTexture;
     float centerVertHeight = 0;
+    GameObject parent;
+    float distanceFromNearestPoint;
+    bool visible;
+
+    public void UpdateChunk()
+    {
+        distanceFromNearestPoint = Mathf.Sqrt(Bounds.SqrDistance(Camera.main.transform.position));
+        visible = distanceFromNearestPoint <= ChunkGlobals.renderDistance * ChunkGlobals.worldSpaceChunkSize;
+        SetVisible(visible);
+    }
 
     public void Initialize(GameObject parent, NoiseSettings noiseSettings, Vector2 position, float heightMultiplier, List<TerrainLevel> colorList)
     {
         // Set Pos
-        this.position = position;
+        Position = position * ChunkGlobals.worldSpaceChunkSize;
+        this.parent = parent;
+        Bounds = new Bounds(new Vector3(position.x, 0, position.y), Vector3.one * ChunkGlobals.ChunkSize);
 
-        // int chunkSize = Mathf.Max((ChunkGlobals.chunkSize + 1) / levelOfDetail, 1);
+        visible = false;
+        SetVisible(visible);
 
-        float xTerm = noiseSettings.scale * (position.x / ChunkGlobals.worldSpaceChunkSize);
-        float yTerm = noiseSettings.scale * (position.y / ChunkGlobals.worldSpaceChunkSize);
-        noiseSettings.xOffset = xTerm * (1f - (1f / (ChunkGlobals.chunkSize + 1)));
-        noiseSettings.yOffset = yTerm * (1f - (1f / (ChunkGlobals.chunkSize + 1)));
+        float xTerm = noiseSettings.Scale * (position.x / ChunkGlobals.worldSpaceChunkSize);
+        float yTerm = noiseSettings.Scale * (position.y / ChunkGlobals.worldSpaceChunkSize);
+        noiseSettings.XOffset = xTerm * (1f - (1f / (ChunkGlobals.ChunkSize + 1)));
+        noiseSettings.YOffset = yTerm * (1f - (1f / (ChunkGlobals.ChunkSize + 1)));
 
         // Set Textures and LODs
         for (int i = 0; i < ChunkGlobals.lodNumArray.Length; i++)
         {
             // Generate height values for chunk for this level of detail
-            float[] heightArray = NoiseGen.GeneratePerlinNoise(noiseSettings, ChunkGlobals.lodNumArray[i]);
+            float[] heightArray = NoiseGenerator.GeneratePerlinNoise(noiseSettings, ChunkGlobals.lodNumArray[i]);
 
             centerVertHeight = heightArray[heightArray.Length / 2] * heightMultiplier;
 
             // Set meshes and textures for this level of detail
-            lodMeshList[i] = MeshGen.GenerateMesh(heightArray, centerVertHeight, heightMultiplier);
-            CalcUVs(lodMeshList[i], heightArray);
+            LodMeshList[i] = MeshGen.GenerateMesh(heightArray, centerVertHeight, heightMultiplier);
+            CalcUVs(LodMeshList[i], heightArray);
 
-            lodTextureList[i] = TextureGen.GenerateTexture(heightArray, colorList);
+            LodTextureList[i] = TextureGenerator.GenerateTexture(heightArray, colorList);
         }
 
         Vector3 worldPosition = new(position.x, 0, position.y);
@@ -61,14 +72,23 @@ public class Chunk : MonoBehaviour
         parent.transform.position = worldPosition;
 
         meshFilter = GetComponent<MeshFilter>();
-        currentMesh = lodMeshList[0];
+        currentMesh = LodMeshList[0];
         SetMesh(meshFilter, currentMesh);
 
         meshRenderer = GetComponent<MeshRenderer>();
-        currentTexture = lodTextureList[0];
+        currentTexture = LodTextureList[0];
         SetTexture(currentTexture);
     }
 
+    public void SetVisible(bool visible)
+    {
+        parent.SetActive(visible);
+    }
+
+    public bool IsVisible()
+    {
+        return parent.activeSelf;
+    }
     public void CalcUVs(Mesh mesh, float[] heightArray)
     {
         int size = (int)Mathf.Sqrt(heightArray.Length);
@@ -94,10 +114,10 @@ public class Chunk : MonoBehaviour
 
     public void SetTexture(Texture2D texture)
     {
-        meshRenderer.material.mainTexture = texture;
-        meshRenderer.material.SetFloat("_Glossiness", 0.0f);
-        texture.filterMode = FilterMode.Point;
-        texture.wrapMode = TextureWrapMode.Clamp;
-        texture.Apply();
+        meshRenderer.sharedMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit"))
+        {
+            mainTexture = texture
+        };
+        meshRenderer.sharedMaterial.SetFloat("_Smoothness", 0.0f);
     }
 }
