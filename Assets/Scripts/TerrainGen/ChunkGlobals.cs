@@ -7,7 +7,7 @@ public class ChunkGlobals : MonoBehaviour
     // Controls distances at which the next level of detail will be used
     public static readonly int[] lodDistArray = new int[lodNumSize - 1] { 50, 100, 200 };
     // Size of chunks measured by pixel length
-    public const int ChunkSize = 16;
+    public const int ChunkSize = 32;
     public const float worldSpaceChunkSize = 32;
-    public static int renderDistance = 10;
+    public static int renderDistance = 15;
 }

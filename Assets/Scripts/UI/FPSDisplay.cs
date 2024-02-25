@@ -2,12 +2,29 @@ using UnityEngine;
 
 public class FPSDisplay : MonoBehaviour
 {
+    int frameCount = 0;
     float deltaTime = 0.0f;
+    float fps = 0.0f;
+    float updateInterval = 0.2f; // Time between updates
+    float nextUpdateTime = 0.0f; // When to update next
 
     void Update()
     {
-        // Calculate the time taken for each frame (delta time)
-        deltaTime += (Time.unscaledDeltaTime - deltaTime) * 0.1f;
+        frameCount++;
+        deltaTime += Time.unscaledDeltaTime;
+
+        // Update FPS every updateInterval seconds
+        if (Time.unscaledTime >= nextUpdateTime)
+        {
+            // Calculate FPS
+            fps = frameCount / deltaTime;
+
+            nextUpdateTime = Time.unscaledTime + updateInterval;
+
+            // Reset for the next interval
+            frameCount = 0;
+            deltaTime = 0;
+        }
     }
 
     void OnGUI()
@@ -16,22 +33,16 @@ public class FPSDisplay : MonoBehaviour
 
         GUIStyle style = new GUIStyle();
 
-        // Set the rectangle for displaying FPS
         Rect rect = new(0, 0, w, h * 2 / 100);
 
-        // Configure the style
         style.alignment = TextAnchor.UpperRight;
         style.fontSize = h * 2 / 100;
         style.normal.textColor = new Color(1.0f, 0.0f, 0.0f, 1.0f);
 
-        // Calculate FPS
-        float msec = deltaTime * 1000.0f;
-        float fps = 1.0f / deltaTime;
+        // Use the calculated FPS from the Update method
+        float msec = 1000.0f / fps;
+        string text = string.Format("{0:0.0} ms ({1:0.} fps)", msec, fps);
 
-        // Format the string to display
-        string text = string.Format("{0:0.0} ms\n{1:0.} fps", msec, fps);
-
-        // Draw the FPS
         GUI.Label(rect, text, style);
     }
 }

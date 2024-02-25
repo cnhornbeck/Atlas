@@ -28,17 +28,11 @@ public class Chunk : MonoBehaviour
     float distanceFromNearestPoint;
     bool visible;
 
-    public void UpdateChunk()
-    {
-        distanceFromNearestPoint = Mathf.Sqrt(Bounds.SqrDistance(Camera.main.transform.position));
-        visible = distanceFromNearestPoint <= ChunkGlobals.renderDistance * ChunkGlobals.worldSpaceChunkSize;
-        SetVisible(visible);
-    }
 
     public void Initialize(GameObject parent, NoiseSettings noiseSettings, Vector2 position, float heightMultiplier, List<TerrainLevel> colorList)
     {
         // Set Pos
-        Position = position * ChunkGlobals.worldSpaceChunkSize;
+        Position = position;
         this.parent = parent;
         Bounds = new Bounds(new Vector3(position.x, 0, position.y), Vector3.one * ChunkGlobals.ChunkSize);
 
@@ -76,8 +70,15 @@ public class Chunk : MonoBehaviour
         SetMesh(meshFilter, currentMesh);
 
         meshRenderer = GetComponent<MeshRenderer>();
+
         currentTexture = LodTextureList[0];
-        SetTexture(currentTexture);
+        if (currentTexture == null)
+        {
+            Debug.LogError("CurrentTexture is null.");
+            return;
+        }
+
+        SetTexture(meshRenderer, currentTexture);
     }
 
     public void SetVisible(bool visible)
@@ -112,12 +113,15 @@ public class Chunk : MonoBehaviour
         meshFilter.mesh = mesh;
     }
 
-    public void SetTexture(Texture2D texture)
+    public void SetTexture(MeshRenderer meshRenderer, Texture2D texture)
     {
-        meshRenderer.sharedMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit"))
+        meshRenderer.material = new Material(Shader.Find("Standard"))
         {
             mainTexture = texture
         };
-        meshRenderer.sharedMaterial.SetFloat("_Smoothness", 0.0f);
+        meshRenderer.material.SetFloat("_Glossiness", 0.0f);
+        texture.filterMode = FilterMode.Point;
+        texture.wrapMode = TextureWrapMode.Clamp;
+        texture.Apply();
     }
 }

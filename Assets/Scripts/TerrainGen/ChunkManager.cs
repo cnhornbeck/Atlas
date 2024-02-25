@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class ChunkManager : MonoBehaviour
@@ -6,9 +7,8 @@ public class ChunkManager : MonoBehaviour
     int renderDistance;
     NoiseSettings noiseSettings;
     [SerializeField] List<TerrainLevel> colorList = new();
-    static Dictionary<Vector2, GameObject> chunkDict = new();
-    public static List<GameObject> chunkList = new();
-    public static List<Chunk> chunksVisibleLastFrame = new();
+    static Dictionary<Vector2, Chunk> generatedChunks = new();
+    static HashSet<Vector2> chunksVisibleLastFrame = new();
 
     void Start()
     {
@@ -19,98 +19,85 @@ public class ChunkManager : MonoBehaviour
     void Update()
     {
         renderDistance = ChunkGlobals.renderDistance;
-        UpdateVisibleChunks();
+        Vector3 cameraPos = Camera.main.transform.position;
+        UpdateVisibleChunks(cameraPos);
     }
 
-    void UpdateVisibleChunks()
+    void UpdateVisibleChunks(Vector3 cameraPos)
     {
-        foreach (Chunk chunk in chunksVisibleLastFrame)
-        {
-            chunk.SetVisible(false);
-        }
-        chunksVisibleLastFrame.Clear();
+        HashSet<Vector2> visibleChunkPositions = GetChunkPositionsWithinRadius(cameraPos, renderDistance);
 
-        foreach (Vector2 pos in GetChunkPositionsWithinRadius(Camera.main.transform.position, renderDistance))
+        // Loops over the position of each chunk that should be visible
+        foreach (Vector2 position in visibleChunkPositions)
         {
-            if (chunkDict.ContainsKey(pos))
+            // Checks if a chunk has been generated at position
+            if (generatedChunks.TryGetValue(position, out Chunk chunk))
             {
-                chunkDict[pos].GetComponent<Chunk>().UpdateChunk();
-                if (chunkDict[pos].GetComponent<Chunk>().IsVisible())
+                // Checks if chunk is not visible
+                if (!chunk.IsVisible())
                 {
-                    chunksVisibleLastFrame.Add(chunkDict[pos].GetComponent<Chunk>());
+                    // Enables the chunk
+                    chunk.SetVisible(true);
                 }
             }
             else
             {
-                string chunkName = "Terrain Chunk: (" + (int)pos.x / ChunkGlobals.worldSpaceChunkSize + ", " + (int)pos.y / ChunkGlobals.worldSpaceChunkSize + ")";
-                GameObject terrainChunk = new(chunkName);
-                terrainChunk.transform.parent = transform;
-
-                Chunk chunkComponent = terrainChunk.AddComponent<Chunk>();
-                chunkComponent.Initialize(terrainChunk, noiseSettings, pos, 60, colorList);
-
-                chunkDict.Add(pos, terrainChunk);
-                chunkList.Add(terrainChunk);
+                // If chunk has not been generated, generate it
+                Chunk newChunk = GenerateChunk(position);
+                generatedChunks.Add(position, newChunk);
             }
         }
+
+        // This gets all chunks that are in chunksVisibleLastFrame that are not in visibleChunkPositions and stores that value in chunksVisibleLastFrame
+        chunksVisibleLastFrame.ExceptWith(visibleChunkPositions);
+
+        // Goes through every position in chunksVisibleLastFrame, which now contains only chunks that were visible last frame that should NOT be visible this frame, and disables every chunk at each position
+        foreach (Vector2 position in chunksVisibleLastFrame)
+        {
+            generatedChunks[position].SetVisible(false);
+        }
+
+        // This is that last thing to happen before the next frame so now all chunks that are visible this frame will be visible in the last frame one frame from now
+        chunksVisibleLastFrame = visibleChunkPositions;
     }
 
-    public static List<Vector2> GetChunkPositionsWithinRadius(Vector3 currentPositionVec3, int renderDistance)
+    Chunk GenerateChunk(Vector2 position)
     {
-        List<Vector2> chunkPositionsWithinRadius = new();
+        string chunkName = "Terrain Chunk: (" + (int)position.x / ChunkGlobals.worldSpaceChunkSize + ", " + (int)position.y / ChunkGlobals.worldSpaceChunkSize + ")";
+        GameObject terrainChunk = new(chunkName);
+        terrainChunk.transform.parent = transform;
+
+        Chunk chunkComponent = terrainChunk.AddComponent<Chunk>();
+        chunkComponent.Initialize(terrainChunk, noiseSettings, position, 60, colorList);
+
+        return chunkComponent;
+    }
+
+    public static HashSet<Vector2> GetChunkPositionsWithinRadius(Vector3 currentPositionVec3, int renderDistance)
+    {
+        HashSet<Vector2> chunkPositionsWithinRadius = new();
         int chunksVisibleInRenderDist = renderDistance;
-        Vector2 currentPosition = new(currentPositionVec3.x, currentPositionVec3.z);
-        float xPos = Mathf.RoundToInt(currentPosition.x / ChunkGlobals.worldSpaceChunkSize) * ChunkGlobals.worldSpaceChunkSize;
-        float yPos = Mathf.RoundToInt(currentPosition.y / ChunkGlobals.worldSpaceChunkSize) * ChunkGlobals.worldSpaceChunkSize;
+        float xPos = Mathf.RoundToInt(currentPositionVec3.x / ChunkGlobals.worldSpaceChunkSize) * ChunkGlobals.worldSpaceChunkSize;
+        float yPos = Mathf.RoundToInt(currentPositionVec3.z / ChunkGlobals.worldSpaceChunkSize) * ChunkGlobals.worldSpaceChunkSize;
 
         for (int xOffset = -chunksVisibleInRenderDist; xOffset <= chunksVisibleInRenderDist; xOffset++)
         {
             for (int yOffset = -chunksVisibleInRenderDist; yOffset <= chunksVisibleInRenderDist; yOffset++)
             {
-                Vector2 viewedChunkCoord = new(xPos + xOffset * ChunkGlobals.worldSpaceChunkSize, yPos + yOffset * ChunkGlobals.worldSpaceChunkSize);
-                chunkPositionsWithinRadius.Add(viewedChunkCoord);
+
+                if (InCircleOfRadius(currentPositionVec3, new Vector3(xPos + xOffset * ChunkGlobals.worldSpaceChunkSize, 20, yPos + yOffset * ChunkGlobals.worldSpaceChunkSize), renderDistance * ChunkGlobals.worldSpaceChunkSize))
+                {
+                    Vector2 chunkPosition = new(xPos + xOffset * ChunkGlobals.worldSpaceChunkSize, yPos + yOffset * ChunkGlobals.worldSpaceChunkSize);
+                    chunkPositionsWithinRadius.Add(chunkPosition);
+                }
             }
         }
 
         return chunkPositionsWithinRadius;
     }
 
-    // static bool IsWithinRadius(Vector2 currentPosition, Vector2 position, float radius)
-    // {
-    //     float x = position.x;
-    //     float y = position.y;
-    //     // Calculate Euclidean distance from the center
-    //     float dx = x - currentPosition.x;
-    //     float dy = y - currentPosition.y;
-    //     return dx * dx + dy * dy < radius * radius;
-    // }
-
-    public void CalcUVs(int width, int height, GameObject terrain)
+    static bool InCircleOfRadius(Vector3 currentPosition, Vector3 chunkPosition, float radius)
     {
-        Mesh terrainMesh = terrain.GetComponent<MeshFilter>().sharedMesh;
-        // Generate the UV coordinates for the mesh
-        Vector2[] uvs = new Vector2[width * height];
-        int index = 0;
-        for (int y = 0; y < height; y++)
-        {
-            for (int x = 0; x < width; x++)
-            {
-                uvs[index] = new Vector2(x / (float)width, y / (float)height);
-                index++;
-            }
-        }
-        // Set the UV coordinates of the mesh
-        terrainMesh.SetUVs(0, uvs);
-    }
-
-    public void ClearCachedChunks()
-    {
-        Debug.Log("Clearing cached chunks");
-        foreach (GameObject item in chunkList)
-        {
-            Destroy(item);
-        }
-        chunkDict.Clear();
-        chunkList.Clear();
+        return (currentPosition - chunkPosition).sqrMagnitude <= radius * radius;
     }
 }
