@@ -68,7 +68,7 @@ public class ChunkManager : MonoBehaviour
         terrainChunk.transform.parent = transform;
 
         Chunk chunkComponent = terrainChunk.AddComponent<Chunk>();
-        chunkComponent.Initialize(terrainChunk, noiseSettings, position, 60, colorList);
+        chunkComponent.Initialize(terrainChunk, noiseSettings, position, 1000, colorList);
 
         return chunkComponent;
     }

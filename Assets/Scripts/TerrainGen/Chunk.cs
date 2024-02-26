@@ -7,59 +7,57 @@ using UnityEngine;
 public class Chunk : MonoBehaviour
 {
     public int id = -1;
-    public Vector2 Position { get; set; } = Vector2.zero;
+    public Vector2 WorldSpacePosition { get; set; } = Vector2.zero;
     public Bounds Bounds { get; set; } = new();
     public Mesh[] LodMeshList { get; set; } = new Mesh[ChunkGlobals.lodNumSize];
     public Texture2D[] LodTextureList { get; set; } = new Texture2D[ChunkGlobals.lodNumSize];
     public MeshCollider Hitbox { get; set; } = new();
-    public enum ChunkState
-    {
-        Visible,
-        NotVisible
-    }
-
-    public ChunkState chunkState { get; set; } = ChunkState.Visible;
     MeshFilter meshFilter;
     Mesh currentMesh;
     MeshRenderer meshRenderer;
     Texture2D currentTexture;
-    float centerVertHeight = 0;
     GameObject parent;
-    float distanceFromNearestPoint;
-    bool visible;
 
 
-    public void Initialize(GameObject parent, NoiseSettings noiseSettings, Vector2 position, float heightMultiplier, List<TerrainLevel> colorList)
+
+    public void Initialize(GameObject parent, NoiseSettings noiseSettings, Vector2 worldSpacePosition, float heightMultiplier, List<TerrainLevel> colorList)
     {
         // Set Pos
-        Position = position;
+        WorldSpacePosition = worldSpacePosition;
         this.parent = parent;
-        Bounds = new Bounds(new Vector3(position.x, 0, position.y), Vector3.one * ChunkGlobals.ChunkSize);
+        Bounds = new Bounds(new Vector3(worldSpacePosition.x, 0, worldSpacePosition.y), Vector3.one * ChunkGlobals.meshSpaceChunkSize);
 
-        visible = false;
-        SetVisible(visible);
+        SetVisible(true);
 
-        float xTerm = noiseSettings.Scale * (position.x / ChunkGlobals.worldSpaceChunkSize);
-        float yTerm = noiseSettings.Scale * (position.y / ChunkGlobals.worldSpaceChunkSize);
-        noiseSettings.XOffset = xTerm * (1f - (1f / (ChunkGlobals.ChunkSize + 1)));
-        noiseSettings.YOffset = yTerm * (1f - (1f / (ChunkGlobals.ChunkSize + 1)));
+        // float xTerm = noiseSettings.Scale * (worldSpacePosition.x / ChunkGlobals.worldSpaceChunkSize);
+        // float yTerm = noiseSettings.Scale * (worldSpacePosition.y / ChunkGlobals.worldSpaceChunkSize);
+        // noiseSettings.XOffset = xTerm * (1f - (1f / (ChunkGlobals.ChunkSize + 1)));
+        // noiseSettings.YOffset = yTerm * (1f - (1f / (ChunkGlobals.ChunkSize + 1)));
 
         // Set Textures and LODs
-        for (int i = 0; i < ChunkGlobals.lodNumArray.Length; i++)
-        {
-            // Generate height values for chunk for this level of detail
-            float[] heightArray = NoiseGenerator.GeneratePerlinNoise(noiseSettings, ChunkGlobals.lodNumArray[i]);
+        // for (int i = 0; i < ChunkGlobals.lodNumArray.Length; i++)
+        // {
+        //     // Generate height values for chunk for this level of detail
+        //     float[] heightArray = NoiseGenerator.GeneratePerlinNoise(worldSpacePosition, noiseSettings, ChunkGlobals.lodNumArray[i]);
 
-            centerVertHeight = heightArray[heightArray.Length / 2] * heightMultiplier;
+        //     // Set meshes and textures for this level of detail
+        //     LodMeshList[i] = MeshGen.GenerateMesh(heightArray, heightMultiplier);
+        //     CalcUVs(LodMeshList[i], heightArray);
 
-            // Set meshes and textures for this level of detail
-            LodMeshList[i] = MeshGen.GenerateMesh(heightArray, centerVertHeight, heightMultiplier);
-            CalcUVs(LodMeshList[i], heightArray);
+        //     LodTextureList[i] = TextureGenerator.GenerateTexture(heightArray, colorList);
+        // }
 
-            LodTextureList[i] = TextureGenerator.GenerateTexture(heightArray, colorList);
-        }
 
-        Vector3 worldPosition = new(position.x, 0, position.y);
+        // Generate height values for chunk for this level of detail
+        float[] heightArray = NoiseGenerator.GeneratePerlinNoise(worldSpacePosition, noiseSettings, ChunkGlobals.lodNumArray[0]);
+
+        // Set meshes and textures for this level of detail
+        LodMeshList[0] = MeshGen.GenerateMesh(heightArray, heightMultiplier);
+        CalcUVs(LodMeshList[0], heightArray);
+
+        LodTextureList[0] = TextureGenerator.GenerateTexture(heightArray, colorList);
+
+        Vector3 worldPosition = new(worldSpacePosition.x, 0, worldSpacePosition.y);
 
         // Now, adjust the parent's position.
         // We are setting the parent's position directly to the world position we calculated.
@@ -72,11 +70,6 @@ public class Chunk : MonoBehaviour
         meshRenderer = GetComponent<MeshRenderer>();
 
         currentTexture = LodTextureList[0];
-        if (currentTexture == null)
-        {
-            Debug.LogError("CurrentTexture is null.");
-            return;
-        }
 
         SetTexture(meshRenderer, currentTexture);
     }
@@ -90,6 +83,7 @@ public class Chunk : MonoBehaviour
     {
         return parent.activeSelf;
     }
+
     public void CalcUVs(Mesh mesh, float[] heightArray)
     {
         int size = (int)Mathf.Sqrt(heightArray.Length);

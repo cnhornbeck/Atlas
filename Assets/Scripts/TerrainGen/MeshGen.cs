@@ -36,33 +36,32 @@ public class MeshGen
 
     // This function takes in an array of height values, the width and height of the mesh, the vertical separation between vertices, 
     // the height multiplier, and the water height, and returns an array of Vector3 objects representing the vertices of the mesh.
-    private static Vector3[] GenerateMeshVertices(float[] heightArray, float centerVertHeight, int vertexNum, float heightMultiplier)
+    private static Vector3[] GenerateMeshVertices(float[] heightArray, int meshLengthInVertices, float heightMultiplier)
     {
         // Get the length of the height array, which is the number of vertices in the mesh.
         int size = heightArray.Length;
 
         // Calculate vertex separation length
-        float vertSep = (ChunkGlobals.worldSpaceChunkSize + ChunkGlobals.worldSpaceChunkSize / ChunkGlobals.ChunkSize) / vertexNum;
+        float vertSep = ChunkGlobals.worldSpaceChunkSize / (meshLengthInVertices - 1);
 
         // Create a new array to hold the vertex positions.
         Vector3[] verts = new Vector3[size];
 
         // Calculate the half-width of the mesh.
-        float halfChunkSize = vertSep * vertexNum / 2;
+        float halfChunkSize = ChunkGlobals.worldSpaceChunkSize / 2;
 
         // Loop through each vertex in the mesh.
         for (int i = 0; i < size; i++)
         {
-            // Calculate the y-position of the vertex based on the height value and the water height.
-            // The Mathf.Max function ensures that the y-position is at least the water height, so that the water surface is visible.
+            // Calculate the y-position of the vertex based on the height value.
             float y = heightArray[i] * heightMultiplier;
 
             // Calculate the x and z positions of the vertex based on the index i and the width and vertical separation of the mesh.
             // The % and / operators are used to calculate the row and column of the vertex.
             verts[i] = new Vector3(
-                vertSep * (i % vertexNum) - halfChunkSize,
+                -halfChunkSize + vertSep * (i % meshLengthInVertices),
                 y,
-                vertSep * (i / vertexNum) - halfChunkSize);
+                -halfChunkSize + vertSep * (i / meshLengthInVertices));
         }
 
         // Return the array of vertex positions.
@@ -70,10 +69,10 @@ public class MeshGen
     }
 
     // This method generates the mesh
-    public static Mesh GenerateMesh(float[] heightArray, float centerVertHeight, float heightMultiplier)
+    public static Mesh GenerateMesh(float[] heightArray, float heightMultiplier)
     {
         // Generate vertex number
-        int vertexNum = (int)Mathf.Sqrt(heightArray.Length);
+        int meshLengthInVertices = (int)Mathf.Sqrt(heightArray.Length);
 
         // Create the terrain mesh and set its properties
         Mesh terrainMesh = new()
@@ -83,10 +82,10 @@ public class MeshGen
         };
 
         // Generate the mesh vertices
-        Vector3[] verts = GenerateMeshVertices(heightArray, centerVertHeight, vertexNum, heightMultiplier);
+        Vector3[] verts = GenerateMeshVertices(heightArray, meshLengthInVertices, heightMultiplier);
 
         // Generate the triangles
-        int[] triangles = GenerateMeshTriangles(vertexNum);
+        int[] triangles = GenerateMeshTriangles(meshLengthInVertices);
 
         // Set the mesh vertices, triangles, and normals
         terrainMesh.SetVertices(verts);

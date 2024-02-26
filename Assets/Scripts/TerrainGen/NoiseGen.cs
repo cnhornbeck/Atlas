@@ -3,53 +3,68 @@ using UnityEngine;
 public class NoiseGenerator
 {
     // Generates a 2D array of Perlin noise values with the given settings and detail level
-    public static float[] GeneratePerlinNoise(NoiseSettings settings, int detailLevel)
+    public static float[] GeneratePerlinNoise(Vector2 worldSpacePosition, NoiseSettings settings, int detailLevel)
     {
-        int adjustedChunkSize = CalculateAdjustedChunkSize(detailLevel);
-        float[] noiseMap = new float[adjustedChunkSize * adjustedChunkSize];
+        int chunkSize = CalculateVertexNum(detailLevel);
+        float[] noiseMap = new float[chunkSize * chunkSize];
+
+        // Debug.Log(worldSpacePosition);
+        // Debug.Log(chunkSize);
 
         // Generate and apply Perlin noise
-        float maxPossibleHeight = ApplyPerlinNoise(settings, adjustedChunkSize, ref noiseMap);
+        float maxPossibleHeight = ApplyPerlinNoise(worldSpacePosition, settings, chunkSize, ref noiseMap);
 
         // Normalize noise map values
-        NormalizeNoiseMap(adjustedChunkSize, ref noiseMap, maxPossibleHeight);
+        NormalizeNoiseMap(chunkSize, ref noiseMap, maxPossibleHeight);
 
         return noiseMap;
     }
 
-    private static int CalculateAdjustedChunkSize(int detailLevel)
+    private static int CalculateVertexNum(int detailLevel)
     {
-        return Mathf.Max((ChunkGlobals.ChunkSize + 1) / detailLevel, 1);
+        return Mathf.Max((ChunkGlobals.meshSpaceChunkSize + 1) / detailLevel, 1);
     }
 
-    private static float ApplyPerlinNoise(NoiseSettings settings, int chunkSize, ref float[] noiseMap)
+    private static float ApplyPerlinNoise(Vector2 worldSpacePosition, NoiseSettings settings, int vertexNum, ref float[] noiseMap)
     {
-        System.Random random = new System.Random(settings.Seed);
+        System.Random random = new(settings.Seed);
         float maxPossibleHeight = 0;
         float amplitude = 1;
         float frequency = 1;
+        float avgHeight = 0;
 
         for (int octave = 0; octave < settings.Octaves; octave++)
         {
-            int randomX = random.Next(-100, 100);
-            int randomY = random.Next(-100, 100);
+            int randomX = random.Next(-1000, 1000);
+            int randomY = random.Next(-1000, 1000);
 
-            for (int y = 0; y < chunkSize; y++)
+            for (int y = 0; y < vertexNum; y++)
             {
-                for (int x = 0; x < chunkSize; x++)
+                for (int x = 0; x < vertexNum; x++)
                 {
-                    float sampleX = (x / (float)chunkSize * settings.Scale + settings.XOffset + randomX * amplitude) * frequency;
-                    float sampleY = (y / (float)chunkSize * settings.Scale + settings.YOffset + randomY * amplitude) * frequency;
+                    // Represents the bottom left corner of the mesh in world space. Ex: (initialCoord, initialCoord) = (-5, -5)
+                    float initialCoord = -ChunkGlobals.worldSpaceChunkSize / 2f;
 
-                    noiseMap[y * chunkSize + x] += Mathf.PerlinNoise(sampleX, sampleY) * amplitude;
+                    // This gives the step size in world space. Ex: 1*10/2 = 5. This means 5 world space units between vertices. Frequency is used to control how "zoomed out" we are. A higher frequency is more "zoomed out"
+                    float stepSize = ChunkGlobals.worldSpaceChunkSize / ChunkGlobals.meshSpaceChunkSize;
+
+                    // Takes the starting point (bottom left corner of the mesh in world space) and adds the step size times which vertex we are on, thereby moving through each vertex position. 
+                    // Then we add a random offset to x and y to prevent tiling effects.
+                    // Finally multiply by the frequency so sample points are appropriately spread out.
+                    float sampleX = (initialCoord + x * stepSize + worldSpacePosition.x + randomX) * settings.Scale * frequency;
+                    float sampleY = (initialCoord + y * stepSize + worldSpacePosition.y + randomY) * settings.Scale * frequency;
+
+
+                    noiseMap[y * vertexNum + x] += Mathf.PerlinNoise(sampleX, sampleY) * amplitude;
                 }
             }
+
+            avgHeight += 0.5f * amplitude;
 
             maxPossibleHeight += amplitude;
             amplitude *= settings.Persistence;
             frequency *= settings.Lacunarity;
         }
-
         return maxPossibleHeight;
     }
 
@@ -69,9 +84,9 @@ public class NoiseGenerator
 public struct NoiseSettings
 {
     [HideInInspector] public int ChunkSize;
-    public float XOffset;
-    public float YOffset;
     [Space]
+
+    // Ratio between world space and mesh space
     [Range(0.01f, 20f)] public float Scale;
     [Range(1f, 5f)] public float Lacunarity;
     [Range(0.01f, 1f)] public float Persistence;
@@ -81,10 +96,8 @@ public struct NoiseSettings
     // Initialize fields with default values
     public NoiseSettings(int dummy)
     {
-        ChunkSize = ChunkGlobals.ChunkSize;
-        XOffset = 0f;
-        YOffset = 0f;
-        Scale = 0.3f;
+        ChunkSize = ChunkGlobals.meshSpaceChunkSize;
+        Scale = 0.001f;
         Lacunarity = 2f;
         Persistence = 0.3f;
         Octaves = 7;
