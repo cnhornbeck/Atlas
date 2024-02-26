@@ -12,5 +12,5 @@ public class ChunkGlobals : MonoBehaviour
 
     // Size of the actual mesh in the scene
     public const float worldSpaceChunkSize = 32;
-    public static int renderDistance = 20;
+    public static int renderDistance = 30;
 }

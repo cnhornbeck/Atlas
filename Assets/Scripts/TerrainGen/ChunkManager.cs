@@ -6,7 +6,7 @@ public class ChunkManager : MonoBehaviour
 {
     int renderDistance;
     NoiseSettings noiseSettings;
-    [SerializeField] List<TerrainLevel> colorList = new();
+    [SerializeField] List<TextureGen.TerrainLevel> colorList = new();
     static Dictionary<Vector2, Chunk> generatedChunks = new();
     static HashSet<Vector2> chunksVisibleLastFrame = new();
 
@@ -14,6 +14,7 @@ public class ChunkManager : MonoBehaviour
     {
         noiseSettings = NoiseSettings.CreateDefault();
         renderDistance = ChunkGlobals.renderDistance;
+        TextureGen.PreprocessColors(colorList);
     }
 
     void Update()
@@ -68,7 +69,7 @@ public class ChunkManager : MonoBehaviour
         terrainChunk.transform.parent = transform;
 
         Chunk chunkComponent = terrainChunk.AddComponent<Chunk>();
-        chunkComponent.Initialize(terrainChunk, noiseSettings, position, 1000, colorList);
+        chunkComponent.Initialize(terrainChunk, noiseSettings, position, 200, colorList);
 
         return chunkComponent;
     }

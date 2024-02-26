@@ -97,7 +97,7 @@ public struct NoiseSettings
     public NoiseSettings(int dummy)
     {
         ChunkSize = ChunkGlobals.meshSpaceChunkSize;
-        Scale = 0.001f;
+        Scale = 0.01f;
         Lacunarity = 2f;
         Persistence = 0.3f;
         Octaves = 7;

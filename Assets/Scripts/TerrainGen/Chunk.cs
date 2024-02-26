@@ -20,7 +20,7 @@ public class Chunk : MonoBehaviour
 
 
 
-    public void Initialize(GameObject parent, NoiseSettings noiseSettings, Vector2 worldSpacePosition, float heightMultiplier, List<TerrainLevel> colorList)
+    public void Initialize(GameObject parent, NoiseSettings noiseSettings, Vector2 worldSpacePosition, float heightMultiplier, List<TextureGen.TerrainLevel> colorList)
     {
         // Set Pos
         WorldSpacePosition = worldSpacePosition;
@@ -55,7 +55,7 @@ public class Chunk : MonoBehaviour
         LodMeshList[0] = MeshGen.GenerateMesh(heightArray, heightMultiplier);
         CalcUVs(LodMeshList[0], heightArray);
 
-        LodTextureList[0] = TextureGenerator.GenerateTexture(heightArray, colorList);
+        LodTextureList[0] = TextureGen.GenerateTexture(heightArray, colorList);
 
         Vector3 worldPosition = new(worldSpacePosition.x, 0, worldSpacePosition.y);
 
