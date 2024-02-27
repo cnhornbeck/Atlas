@@ -1,18 +1,15 @@
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 public class ChunkManager : MonoBehaviour
 {
     int renderDistance;
-    NoiseSettings noiseSettings;
     [SerializeField] List<TextureGen.TerrainLevel> colorList = new();
     static Dictionary<Vector2, Chunk> generatedChunks = new();
     static HashSet<Vector2> chunksVisibleLastFrame = new();
 
     void Start()
     {
-        noiseSettings = NoiseSettings.CreateDefault();
         renderDistance = ChunkGlobals.renderDistance;
         TextureGen.PreprocessColors(colorList);
     }
@@ -21,10 +18,10 @@ public class ChunkManager : MonoBehaviour
     {
         renderDistance = ChunkGlobals.renderDistance;
         Vector3 cameraPos = Camera.main.transform.position;
-        UpdateVisibleChunks(cameraPos);
+        UpdateChunkVisibility(cameraPos);
     }
 
-    void UpdateVisibleChunks(Vector3 cameraPos)
+    void UpdateChunkVisibility(Vector3 cameraPos)
     {
         HashSet<Vector2> visibleChunkPositions = GetChunkPositionsWithinRadius(cameraPos, renderDistance);
 
@@ -40,12 +37,15 @@ public class ChunkManager : MonoBehaviour
                     // Enables the chunk
                     chunk.SetVisible(true);
                 }
+                UpdateChunkLOD(cameraPos, chunk);
             }
             else
             {
-                // If chunk has not been generated, generate it
-                Chunk newChunk = GenerateChunk(position);
+                // If chunk has not been generated, generate it with an lod of 3 and add it to the generatedChunks dictionary
+                // lod ranges from 0 to 3, 3 being the lowest resolution
+                Chunk newChunk = GenerateChunk(position, ChunkGlobals.lodNumSize - 1);
                 generatedChunks.Add(position, newChunk);
+                UpdateChunkLOD(cameraPos, newChunk);
             }
         }
 
@@ -62,14 +62,44 @@ public class ChunkManager : MonoBehaviour
         chunksVisibleLastFrame = visibleChunkPositions;
     }
 
-    Chunk GenerateChunk(Vector2 position)
+    void UpdateChunkLOD(Vector3 cameraPos, Chunk chunk)
+    {
+        int lod = CalculateLOD(cameraPos, chunk.WorldSpacePosition, chunk.averageHeight);
+        chunk.SetLOD(lod);
+    }
+
+    int CalculateLOD(Vector3 cameraPos, Vector2 chunkPosition, float averageHeight)
+    {
+        float squaredDistance = (cameraPos - new Vector3(chunkPosition.x, averageHeight, chunkPosition.y)).sqrMagnitude;
+        int lod = 0;
+
+        if (squaredDistance > ChunkGlobals.worldSpaceChunkSize * ChunkGlobals.renderDistance * ChunkGlobals.worldSpaceChunkSize * ChunkGlobals.renderDistance)
+        {
+            lod = ChunkGlobals.lodNumSize - 1;
+            return lod;
+        }
+
+        for (int i = 0; i < ChunkGlobals.lodCutoffArray.Length; i++)
+        {
+            float lodCutoff = ChunkGlobals.lodCutoffArray[i] * ChunkGlobals.worldSpaceChunkSize * ChunkGlobals.renderDistance;
+
+            if (squaredDistance < lodCutoff * lodCutoff)
+            {
+                lod = i;
+                break;
+            }
+        }
+        return lod;
+    }
+
+    Chunk GenerateChunk(Vector2 position, int lod)
     {
         string chunkName = "Terrain Chunk: (" + (int)position.x / ChunkGlobals.worldSpaceChunkSize + ", " + (int)position.y / ChunkGlobals.worldSpaceChunkSize + ")";
         GameObject terrainChunk = new(chunkName);
         terrainChunk.transform.parent = transform;
 
         Chunk chunkComponent = terrainChunk.AddComponent<Chunk>();
-        chunkComponent.Initialize(terrainChunk, noiseSettings, position, 60, colorList);
+        chunkComponent.Initialize(terrainChunk, position, lod);
 
         return chunkComponent;
     }
@@ -78,6 +108,8 @@ public class ChunkManager : MonoBehaviour
     {
         HashSet<Vector2> chunkPositionsWithinRadius = new();
         int chunksVisibleInRenderDist = renderDistance;
+        float averageHeight;
+
         float xPos = Mathf.RoundToInt(currentPositionVec3.x / ChunkGlobals.worldSpaceChunkSize) * ChunkGlobals.worldSpaceChunkSize;
         float yPos = Mathf.RoundToInt(currentPositionVec3.z / ChunkGlobals.worldSpaceChunkSize) * ChunkGlobals.worldSpaceChunkSize;
 
@@ -85,8 +117,12 @@ public class ChunkManager : MonoBehaviour
         {
             for (int yOffset = -chunksVisibleInRenderDist; yOffset <= chunksVisibleInRenderDist; yOffset++)
             {
+                float xCoord = xPos + xOffset * ChunkGlobals.worldSpaceChunkSize;
+                float zCoord = yPos + yOffset * ChunkGlobals.worldSpaceChunkSize;
 
-                if (InCircleOfRadius(currentPositionVec3, new Vector3(xPos + xOffset * ChunkGlobals.worldSpaceChunkSize, 20, yPos + yOffset * ChunkGlobals.worldSpaceChunkSize), renderDistance * ChunkGlobals.worldSpaceChunkSize))
+                averageHeight = generatedChunks.TryGetValue(new Vector2(xCoord, zCoord), out Chunk chunk) ? chunk.averageHeight : ChunkGlobals.heightMultiplier * 0.6f;
+
+                if (InCircleOfRadius(currentPositionVec3, new Vector3(xCoord, averageHeight, zCoord), renderDistance * ChunkGlobals.worldSpaceChunkSize))
                 {
                     Vector2 chunkPosition = new(xPos + xOffset * ChunkGlobals.worldSpaceChunkSize, yPos + yOffset * ChunkGlobals.worldSpaceChunkSize);
                     chunkPositionsWithinRadius.Add(chunkPosition);

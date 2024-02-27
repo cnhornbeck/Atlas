@@ -36,7 +36,7 @@ public class MeshGen
 
     // This function takes in an array of height values, the width and height of the mesh, the vertical separation between vertices, 
     // the height multiplier, and the water height, and returns an array of Vector3 objects representing the vertices of the mesh.
-    private static Vector3[] GenerateMeshVertices(float[] heightArray, int meshLengthInVertices, float heightMultiplier)
+    private static Vector3[] GenerateMeshVertices(float[] heightArray, int meshLengthInVertices)
     {
         // Get the length of the height array, which is the number of vertices in the mesh.
         int size = heightArray.Length;
@@ -54,7 +54,7 @@ public class MeshGen
         for (int i = 0; i < size; i++)
         {
             // Calculate the y-position of the vertex based on the height value.
-            float y = heightArray[i] * heightMultiplier;
+            float y = heightArray[i] * ChunkGlobals.heightMultiplier;
 
             // Calculate the x and z positions of the vertex based on the index i and the width and vertical separation of the mesh.
             // The % and / operators are used to calculate the row and column of the vertex.
@@ -69,7 +69,7 @@ public class MeshGen
     }
 
     // This method generates the mesh
-    public static Mesh GenerateMesh(float[] heightArray, float heightMultiplier)
+    public static Mesh GenerateMesh(float[] heightArray)
     {
         // Generate vertex number
         int meshLengthInVertices = (int)Mathf.Sqrt(heightArray.Length);
@@ -82,7 +82,7 @@ public class MeshGen
         };
 
         // Generate the mesh vertices
-        Vector3[] verts = GenerateMeshVertices(heightArray, meshLengthInVertices, heightMultiplier);
+        Vector3[] verts = GenerateMeshVertices(heightArray, meshLengthInVertices);
 
         // Generate the triangles
         int[] triangles = GenerateMeshTriangles(meshLengthInVertices);
