@@ -1,30 +1,15 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using System.IO;
 
 public class TextureGen
 {
     static Dictionary<int, Color> lookupTable = new();
-
-    public static Texture2D GenerateTexture(float[] heightArray, List<TerrainLevel> terrainLevels)
-    {
-        int textureSize = (int)Mathf.Sqrt(heightArray.Length);
-
-        Texture2D texture = new Texture2D(textureSize, textureSize)
-        {
-            filterMode = FilterMode.Point, // Ensures sharp edges, important for pixel art or blocky styles
-            wrapMode = TextureWrapMode.Clamp // Prevents texture from tiling
-        };
-
-        texture.SetPixels(MapColorsToHeight(heightArray));
-        texture.Apply(); // Apply changes to the texture
-
-        return texture;
-    }
+    static int numberOfColors = 100;
 
     public static void PreprocessColors(List<TerrainLevel> terrainLevels)
     {
-        int numberOfColors = 1000;
         // Assuming heights are between 0 and 1, and we're truncating to 1 decimal place
         for (int i = 0; i <= numberOfColors; i += 1)
         {
@@ -35,8 +20,6 @@ public class TextureGen
                 if (level.MaxHeight >= i / (float)numberOfColors)
                 {
                     lookupTable[i] = Color.Lerp(level.ColorStart, level.ColorEnd, level.Gradient.Evaluate((i / (float)numberOfColors - previousMaxHeight) / (level.MaxHeight - previousMaxHeight)));
-                    // Debug.Log((i / 100f - previousMaxHeight) + " divided by " + (level.MaxHeight - previousMaxHeight) + " equals " + (i / 100f - previousMaxHeight) / (level.MaxHeight - previousMaxHeight));
-                    // Debug.Log();
                     break;
                 }
                 previousMaxHeight = level.MaxHeight;
@@ -44,29 +27,77 @@ public class TextureGen
         }
     }
 
+    public static void SaveTextureToPNG(Texture2D texture, string filePath)
+    {
+        // Encode the texture into PNG format
+        byte[] bytes = texture.EncodeToPNG();
+        if (bytes != null && bytes.Length > 0)
+        {
+            // Write the bytes to a file
+            File.WriteAllBytes(filePath, bytes);
+            Debug.Log($"Texture saved to {filePath}");
+        }
+        else
+        {
+            Debug.LogError("Failed to encode texture to PNG.");
+        }
+    }
+
+    public static Texture2D GenerateTexture(float[] heightArray)
+    {
+        int textureSize = (int)Mathf.Sqrt(heightArray.Length) - 1;
+
+        Texture2D texture = new(textureSize, textureSize)
+        {
+            filterMode = FilterMode.Point, // Ensures sharp edges, important for pixel art or blocky styles
+            wrapMode = TextureWrapMode.Clamp // Prevents texture from tiling
+        };
+
+        texture.SetPixels(MapColorsToHeight(heightArray, textureSize));
+        texture.Apply(); // Apply changes to the texture
+
+        // If you want to save the texture to a file, use the following code:
+        // string path = Application.persistentDataPath + "/mySavedTexture.png";
+        // SaveTextureToPNG(texture, path);
+
+        return texture;
+    }
 
     public static Color GetColorForHeight(float height)
     {
-        int truncatedHeight = Mathf.RoundToInt(height * 1000f);
-        // Debug.Log(truncatedHeight);
-        if (lookupTable.TryGetValue(truncatedHeight, out Color color))
+        // Scale the height (between 0 and 1) to a range of 0 to numberOfColors
+        int scaledHeight = Mathf.RoundToInt(height * numberOfColors);
+        if (lookupTable.TryGetValue(scaledHeight, out Color color))
         {
             return color;
         }
         return Color.white; // Default color if none found, adjust as needed
     }
 
-    private static Color[] MapColorsToHeight(float[] heightArray)
+    private static Color[] MapColorsToHeight(float[] heightArray, int textureSize)
     {
-        Color[] colorMap = new Color[heightArray.Length];
+        Color[] colorMap = new Color[textureSize * textureSize];
 
-        for (int i = 0; i < heightArray.Length; i++)
+        for (int x = 0; x < textureSize; x++)
         {
-            colorMap[i] = GetColorForHeight(heightArray[i]);
+            for (int y = 0; y < textureSize; y++)
+            {
+                // Summed height of the four corners of the square
+                float summedHeight =
+                    heightArray[x * (textureSize + 1) + y] +
+                    heightArray[x * (textureSize + 1) + y + 1] +
+                    heightArray[(x + 1) * (textureSize + 1) + y] +
+                    heightArray[(x + 1) * (textureSize + 1) + y + 1];
+
+                // Average height of the four corners of the square
+                float smoothedHeight = summedHeight / 4f;
+
+                colorMap[x * textureSize + y] = GetColorForHeight(smoothedHeight);
+            }
         }
+
         return colorMap;
     }
-
 
 
     [Serializable]

@@ -55,7 +55,7 @@ public class Chunk : MonoBehaviour
         LodMeshList[0] = MeshGen.GenerateMesh(heightArray, heightMultiplier);
         CalcUVs(LodMeshList[0], heightArray);
 
-        LodTextureList[0] = TextureGen.GenerateTexture(heightArray, colorList);
+        LodTextureList[0] = TextureGen.GenerateTexture(heightArray);
 
         Vector3 worldPosition = new(worldSpacePosition.x, 0, worldSpacePosition.y);
 
@@ -87,14 +87,17 @@ public class Chunk : MonoBehaviour
     public void CalcUVs(Mesh mesh, float[] heightArray)
     {
         int size = (int)Mathf.Sqrt(heightArray.Length);
+
         // Generate the UV coordinates for the mesh
         Vector2[] uvs = new Vector2[size * size];
+        
         int index = 0;
         for (int y = 0; y < size; y++)
         {
             for (int x = 0; x < size; x++)
             {
-                uvs[index] = new Vector2(x / (float)size, y / (float)size);
+                // Size - 1 is used because the UV coordinates are in the range [0, 1] and size increments from 0 to size - 1 in the for loop.
+                uvs[index] = new Vector2(x / ((float)size - 1), y / ((float)size - 1));
                 index++;
             }
         }
