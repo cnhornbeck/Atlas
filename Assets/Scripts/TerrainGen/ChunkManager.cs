@@ -23,7 +23,7 @@ public class ChunkManager : MonoBehaviour
 
     void UpdateChunkVisibility(Vector3 cameraPos)
     {
-        HashSet<Vector2> visibleChunkPositions = GetChunkPositionsWithinRadius(cameraPos, renderDistance);
+        HashSet<Vector2> visibleChunkPositions = GetVisibleChunkPositionsWithinRadius(cameraPos, renderDistance);
 
         // Loops over the position of each chunk that should be visible
         foreach (Vector2 position in visibleChunkPositions)
@@ -104,37 +104,32 @@ public class ChunkManager : MonoBehaviour
         return chunkComponent;
     }
 
-    public static HashSet<Vector2> GetChunkPositionsWithinRadius(Vector3 currentPositionVec3, int renderDistance)
+    public static HashSet<Vector2> GetVisibleChunkPositionsWithinRadius(Vector3 currentPositionVec3, int renderDistance)
     {
-        HashSet<Vector2> chunkPositionsWithinRadius = new();
-        int chunksVisibleInRenderDist = renderDistance;
-        float averageHeight;
+        HashSet<Vector2> visibleChunkPositionsWithinRadius = new();
+        // int chunksVisibleInRenderDist = renderDistance;
+        float squaredRenderDistance = (renderDistance * ChunkGlobals.worldSpaceChunkSize) * (renderDistance * ChunkGlobals.worldSpaceChunkSize);
 
         float xPos = Mathf.RoundToInt(currentPositionVec3.x / ChunkGlobals.worldSpaceChunkSize) * ChunkGlobals.worldSpaceChunkSize;
         float yPos = Mathf.RoundToInt(currentPositionVec3.z / ChunkGlobals.worldSpaceChunkSize) * ChunkGlobals.worldSpaceChunkSize;
+        // float averageHeight = ChunkGlobals.heightMultiplier * 0.6f;
 
-        for (int xOffset = -chunksVisibleInRenderDist; xOffset <= chunksVisibleInRenderDist; xOffset++)
+        for (int xOffset = -renderDistance; xOffset <= renderDistance; xOffset++)
         {
-            for (int yOffset = -chunksVisibleInRenderDist; yOffset <= chunksVisibleInRenderDist; yOffset++)
+            float xCoord = xPos + xOffset * ChunkGlobals.worldSpaceChunkSize;
+            // Calculate the span of the circle at this xOffset
+            int ySpan = Mathf.RoundToInt(Mathf.Sqrt(squaredRenderDistance - Mathf.Pow(xOffset * ChunkGlobals.worldSpaceChunkSize, 2)) / ChunkGlobals.worldSpaceChunkSize);
+
+            for (int yOffset = -ySpan; yOffset <= ySpan; yOffset++)
             {
-                float xCoord = xPos + xOffset * ChunkGlobals.worldSpaceChunkSize;
                 float zCoord = yPos + yOffset * ChunkGlobals.worldSpaceChunkSize;
-
-                averageHeight = generatedChunks.TryGetValue(new Vector2(xCoord, zCoord), out Chunk chunk) ? chunk.averageHeight : ChunkGlobals.heightMultiplier * 0.6f;
-
-                if (InCircleOfRadius(currentPositionVec3, new Vector3(xCoord, averageHeight, zCoord), renderDistance * ChunkGlobals.worldSpaceChunkSize))
-                {
-                    Vector2 chunkPosition = new(xPos + xOffset * ChunkGlobals.worldSpaceChunkSize, yPos + yOffset * ChunkGlobals.worldSpaceChunkSize);
-                    chunkPositionsWithinRadius.Add(chunkPosition);
-                }
+                Vector2 chunkPosition = new(xCoord, zCoord);
+                visibleChunkPositionsWithinRadius.Add(chunkPosition);
             }
         }
 
-        return chunkPositionsWithinRadius;
+        return visibleChunkPositionsWithinRadius;
     }
 
-    static bool InCircleOfRadius(Vector3 currentPosition, Vector3 chunkPosition, float radius)
-    {
-        return (currentPosition - chunkPosition).sqrMagnitude <= radius * radius;
-    }
 }
+
