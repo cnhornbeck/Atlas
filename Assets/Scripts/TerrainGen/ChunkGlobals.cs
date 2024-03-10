@@ -8,10 +8,10 @@ public class ChunkGlobals : MonoBehaviour
     public static readonly float[] lodCutoffArray = new float[lodNumSize] { 0.1f, 0.25f, 0.5f, 1f };
 
     // Size of chunk is measured by number of edges per chunk
-    public const int meshSpaceChunkSize = 64;
+    public const int meshSpaceChunkSize = 128;
 
     // Size of the actual mesh in the scene
     public const float worldSpaceChunkSize = 32;
-    public const float heightMultiplier = 10;
+    public const float heightMultiplier = 100;
     public static int renderDistance = 20;
 }

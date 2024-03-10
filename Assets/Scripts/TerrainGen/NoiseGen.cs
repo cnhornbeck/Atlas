@@ -7,7 +7,7 @@ public class NoiseGen
     // private static readonly System.Random random = new(settings.Seed);
 
     // Generates a 2D array of Perlin noise values with the given settings and detail level
-    public static float[] GeneratePerlinNoise(Vector2 worldSpacePosition, int detailLevel, ref float averageHeight)
+    public static float[] GeneratePerlinNoise(Vector2 worldSpacePosition, int detailLevel)
     {
         // Length of the mesh measured in vertices
         int vertexNum = CalculateVertexNum(detailLevel);
@@ -17,7 +17,7 @@ public class NoiseGen
         // Debug.Log($"Chunk size: {vertexNum}");
 
         // Generate and apply Perlin noise
-        float maxPossibleHeight = ApplyPerlinNoise(worldSpacePosition, vertexNum, ref noiseMap, ref averageHeight);
+        float maxPossibleHeight = ApplyPerlinNoise(worldSpacePosition, vertexNum, ref noiseMap);
 
         // Normalize noise map values
         NormalizeNoiseMap(vertexNum, ref noiseMap, maxPossibleHeight);
@@ -30,7 +30,7 @@ public class NoiseGen
         return Mathf.Max((ChunkGlobals.meshSpaceChunkSize / detailLevel) + 1, 1);
     }
 
-    private static float ApplyPerlinNoise(Vector2 worldSpacePosition, int vertexNum, ref float[] noiseMap, ref float averageHeight)
+    private static float ApplyPerlinNoise(Vector2 worldSpacePosition, int vertexNum, ref float[] noiseMap)
     {
         System.Random random = new(settings.Seed);
         float maxPossibleHeight = 0;
@@ -68,12 +68,12 @@ public class NoiseGen
             frequency *= settings.Lacunarity;
         }
 
-        float summedHeight = noiseMap[0] +
-                        noiseMap[vertexNum - 1] +
-                        noiseMap[(vertexNum - 1) * vertexNum] +
-                        noiseMap[(vertexNum - 1) * vertexNum + vertexNum - 1];
+        // float summedHeight = noiseMap[0] +
+        //                 noiseMap[vertexNum - 1] +
+        //                 noiseMap[(vertexNum - 1) * vertexNum] +
+        //                 noiseMap[(vertexNum - 1) * vertexNum + vertexNum - 1];
 
-        averageHeight = summedHeight * ChunkGlobals.heightMultiplier / (4 * maxPossibleHeight);
+        // averageHeight = summedHeight * ChunkGlobals.heightMultiplier / (4 * maxPossibleHeight);
 
         return maxPossibleHeight;
     }
@@ -136,7 +136,7 @@ public struct NoiseSettings
     public NoiseSettings(int dummy)
     {
         ChunkSize = ChunkGlobals.meshSpaceChunkSize;
-        Scale = 0.1f;
+        Scale = 0.005f;
         Lacunarity = 2f;
         Persistence = 0.4f;
         Octaves = 10;

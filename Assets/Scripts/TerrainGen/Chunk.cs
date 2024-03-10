@@ -1,141 +1,128 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 [RequireComponent(typeof(MeshFilter))]
 [RequireComponent(typeof(MeshRenderer))]
 [RequireComponent(typeof(MeshCollider))]
+[RequireComponent(typeof(LODGroup))]
+
 public class Chunk : MonoBehaviour
 {
-    public int id = -1;
-    public int lod = ChunkGlobals.lodNumSize - 1;
-    public float averageHeight;
-    public Vector2 WorldSpacePosition { get; set; } = Vector2.zero;
-    public Bounds Bounds { get; set; } = new();
-    public Mesh[] LodMeshList { get; set; } = new Mesh[ChunkGlobals.lodNumSize];
-    public Texture2D[] LodTextureList { get; set; } = new Texture2D[ChunkGlobals.lodNumSize];
-    public MeshCollider Hitbox { get; set; } = new();
-    MeshFilter meshFilter;
-    Mesh currentMesh;
-    MeshRenderer meshRenderer;
-    Texture2D currentTexture;
-    GameObject parent;
+    public Vector2 WorldSpacePosition { get; private set; }
+    public float AverageHeight { get; private set; }
 
+    private GameObject parent;
+    [SerializeField] private int lod;
 
+    private MeshRenderer meshRenderer;
+    private MeshFilter meshFilter;
+
+    private Mesh[] LodMeshList = new Mesh[ChunkGlobals.lodNumArray.Length];
+    private Texture2D[] LodTextureList = new Texture2D[ChunkGlobals.lodNumArray.Length];
+
+    // Initialize the chunk with its basic properties and generate its initial content.
     public void Initialize(GameObject parent, Vector2 worldSpacePosition, int lod)
     {
-        // Set Pos
         WorldSpacePosition = worldSpacePosition;
         this.parent = parent;
-        // Bounds = new Bounds(new Vector3(worldSpacePosition.x, 0, worldSpacePosition.y), Vector3.one * ChunkGlobals.meshSpaceChunkSize);
         this.lod = lod;
+
+        // Set the parent's position based on the world space position.
+        Vector3 worldPosition = new(worldSpacePosition.x, 0, worldSpacePosition.y);
+        parent.transform.position = worldPosition;
 
         SetVisible(true);
 
-        // print("Initializing chunk at: " + worldSpacePosition / ChunkGlobals.worldSpaceChunkSize + " with LOD: " + lod);
-
-        // Generate height values for chunk for this level of detail
-        float[] heightArray = NoiseGen.GeneratePerlinNoise(worldSpacePosition, ChunkGlobals.lodNumArray[lod], ref averageHeight);
-
-        // Set meshes and textures for this level of detail
-        LodMeshList[lod] = MeshGen.GenerateMesh(heightArray);
-        CalcUVs(LodMeshList[lod], heightArray);
-
-        LodTextureList[lod] = TextureGen.GenerateTexture(heightArray);
-
-        Vector3 worldPosition = new(worldSpacePosition.x, 0, worldSpacePosition.y);
-
-        // Now, adjust the parent's position.
-        // We are setting the parent's position directly to the world position we calculated.
-        parent.transform.position = worldPosition;
-
+        // Setup components
         meshFilter = GetComponent<MeshFilter>();
-        currentMesh = LodMeshList[lod];
-        SetMesh(meshFilter, currentMesh);
-
         meshRenderer = GetComponent<MeshRenderer>();
 
-        currentTexture = LodTextureList[lod];
-
-        SetTexture(meshRenderer, currentTexture);
+        GenerateContentForLOD(lod);
     }
 
-    public void SetLOD(int lod)
+    // Sets the Level of Detail (LOD) for the chunk, regenerating content if necessary.
+    public void SetLOD(int newLOD)
     {
-        float dummy = 0;
-        // Check is the mesh is already set to the correct level of detail
-        if (currentMesh != LodMeshList[lod])
+        // No change needed if the LOD is already set to the desired level.
+        if (lod != newLOD)
         {
-            // Check if the mesh has not been generated yet (this also means the texture has not been generated)
+            lod = newLOD;
             if (LodMeshList[lod] == null)
             {
-                // Generate height values for chunk for this level of detail
-                float[] heightArray = NoiseGen.GeneratePerlinNoise(WorldSpacePosition, ChunkGlobals.lodNumArray[lod], ref dummy);
-
-                // Generate the mesh for this level of detail and set the UVs
-                LodMeshList[lod] = MeshGen.GenerateMesh(heightArray);
-                CalcUVs(LodMeshList[lod], heightArray);
-
-                // Generate the texture for this level of detail
-                LodTextureList[lod] = TextureGen.GenerateTexture(heightArray);
+                GenerateContentForLOD(lod);
             }
-
-            // Set the mesh this level of detail
-            currentMesh = LodMeshList[lod];
-            SetMesh(meshFilter, currentMesh);
-
-            // Set the texture this level of detail
-            currentTexture = LodTextureList[lod];
-            SetTexture(meshRenderer, currentTexture);
+            else
+            {
+                // Apply existing LOD content without regenerating.
+                ApplyLODContent(lod);
+            }
         }
-
-        this.lod = lod;
     }
 
+    // Generates or applies content for a specific LOD.
+    private void GenerateContentForLOD(int lod)
+    {
+        float[] heightArray = NoiseGen.GeneratePerlinNoise(WorldSpacePosition, ChunkGlobals.lodNumArray[lod]);
+        if (LodMeshList[lod] == null)
+        {
+            LodMeshList[lod] = MeshGen.GenerateMesh(heightArray);
+            LodTextureList[lod] = TextureGen.GenerateTexture(heightArray);
+        }
+
+        CalcUVs(LodMeshList[lod], heightArray);
+        ApplyLODContent(lod);
+    }
+
+    // Applies mesh and texture for the current LOD.
+    private void ApplyLODContent(int lod)
+    {
+        SetMesh(meshFilter, LodMeshList[lod]);
+        SetTexture(meshRenderer, LodTextureList[lod]);
+    }
+
+    // Sets the visibility of the chunk.
     public void SetVisible(bool visible)
     {
         parent.SetActive(visible);
     }
 
+    // Returns visibility status of the chunk.
     public bool IsVisible()
     {
         return parent.activeSelf;
     }
 
-    public void CalcUVs(Mesh mesh, float[] heightArray)
+    // Calculates and sets UVs based on height array.
+    private void CalcUVs(Mesh mesh, float[] heightArray)
     {
         int size = (int)Mathf.Sqrt(heightArray.Length);
-
-        // Generate the UV coordinates for the mesh
         Vector2[] uvs = new Vector2[size * size];
-
-        int index = 0;
-        for (int y = 0; y < size; y++)
+        for (int i = 0, y = 0; y < size; y++)
         {
-            for (int x = 0; x < size; x++)
+            for (int x = 0; x < size; x++, i++)
             {
-                // Size - 1 is used because the UV coordinates are in the range [0, 1] and size increments from 0 to size - 1 in the for loop.
-                uvs[index] = new Vector2(x / ((float)size - 1), y / ((float)size - 1));
-                index++;
+                uvs[i] = new Vector2(x / (float)(size - 1), y / (float)(size - 1));
             }
         }
-        // Set the UV coordinates of the mesh
-        mesh.SetUVs(0, uvs);
+        mesh.SetUVs(0, new List<Vector2>(uvs));
     }
 
-    public void SetMesh(MeshFilter meshFilter, Mesh mesh)
+    // Sets the mesh for the chunk.
+    private void SetMesh(MeshFilter meshFilter, Mesh mesh)
     {
         meshFilter.mesh = mesh;
     }
 
-    public void SetTexture(MeshRenderer meshRenderer, Texture2D texture)
+    // Sets the texture for the chunk.
+    private void SetTexture(MeshRenderer meshRenderer, Texture2D texture)
     {
-
-        meshRenderer.material = new Material(Shader.Find("Standard"))
+        if (meshRenderer.material == null)
         {
-            mainTexture = texture
-        };
+            meshRenderer.material = new Material(Shader.Find("Standard"));
+        }
+        meshRenderer.material.mainTexture = texture;
         meshRenderer.material.SetFloat("_Glossiness", 0.0f);
         texture.filterMode = FilterMode.Point;
         texture.wrapMode = TextureWrapMode.Clamp;
-        texture.Apply();
     }
 }

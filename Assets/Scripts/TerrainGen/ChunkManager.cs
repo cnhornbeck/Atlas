@@ -64,7 +64,7 @@ public class ChunkManager : MonoBehaviour
 
     void UpdateChunkLOD(Vector3 cameraPos, Chunk chunk)
     {
-        int lod = CalculateLOD(cameraPos, chunk.WorldSpacePosition, chunk.averageHeight);
+        int lod = CalculateLOD(cameraPos, chunk.WorldSpacePosition, chunk.AverageHeight);
         chunk.SetLOD(lod);
     }
 
