@@ -37,7 +37,7 @@ public class ChunkManager : MonoBehaviour
                     // Enables the chunk
                     chunk.SetVisible(true);
                 }
-                UpdateChunkLOD(cameraPos, chunk);
+                // UpdateChunkLOD(cameraPos, chunk);
             }
             else
             {
@@ -45,7 +45,7 @@ public class ChunkManager : MonoBehaviour
                 // lod ranges from 0 to 3, 3 being the lowest resolution
                 Chunk newChunk = GenerateChunk(position, ChunkGlobals.lodNumSize - 1);
                 generatedChunks.Add(position, newChunk);
-                UpdateChunkLOD(cameraPos, newChunk);
+                // UpdateChunkLOD(cameraPos, newChunk);
             }
         }
 
@@ -62,11 +62,11 @@ public class ChunkManager : MonoBehaviour
         chunksVisibleLastFrame = visibleChunkPositions;
     }
 
-    void UpdateChunkLOD(Vector3 cameraPos, Chunk chunk)
-    {
-        int lod = CalculateLOD(cameraPos, chunk.WorldSpacePosition, chunk.AverageHeight);
-        chunk.SetLOD(lod);
-    }
+    // void UpdateChunkLOD(Vector3 cameraPos, Chunk chunk)
+    // {
+    //     int lod = CalculateLOD(cameraPos, chunk.WorldSpacePosition, chunk.AverageHeight);
+    //     chunk.SetLOD(lod);
+    // }
 
     int CalculateLOD(Vector3 cameraPos, Vector2 chunkPosition, float averageHeight)
     {
@@ -99,7 +99,7 @@ public class ChunkManager : MonoBehaviour
         terrainChunk.transform.parent = transform;
 
         Chunk chunkComponent = terrainChunk.AddComponent<Chunk>();
-        chunkComponent.Initialize(terrainChunk, position, lod);
+        chunkComponent.Initialize(terrainChunk, position);
 
         return chunkComponent;
     }
@@ -108,7 +108,7 @@ public class ChunkManager : MonoBehaviour
     {
         HashSet<Vector2> visibleChunkPositionsWithinRadius = new();
         // int chunksVisibleInRenderDist = renderDistance;
-        float squaredRenderDistance = (renderDistance * ChunkGlobals.worldSpaceChunkSize) * (renderDistance * ChunkGlobals.worldSpaceChunkSize);
+        float squaredRenderDistance = renderDistance * ChunkGlobals.worldSpaceChunkSize * (renderDistance * ChunkGlobals.worldSpaceChunkSize);
 
         float xPos = Mathf.RoundToInt(currentPositionVec3.x / ChunkGlobals.worldSpaceChunkSize) * ChunkGlobals.worldSpaceChunkSize;
         float yPos = Mathf.RoundToInt(currentPositionVec3.z / ChunkGlobals.worldSpaceChunkSize) * ChunkGlobals.worldSpaceChunkSize;
