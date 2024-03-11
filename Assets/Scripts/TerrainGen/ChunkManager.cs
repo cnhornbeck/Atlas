@@ -37,15 +37,12 @@ public class ChunkManager : MonoBehaviour
                     // Enables the chunk
                     chunk.SetVisible(true);
                 }
-                // UpdateChunkLOD(cameraPos, chunk);
+
             }
             else
             {
-                // If chunk has not been generated, generate it with an lod of 3 and add it to the generatedChunks dictionary
-                // lod ranges from 0 to 3, 3 being the lowest resolution
-                Chunk newChunk = GenerateChunk(position, ChunkGlobals.lodNumSize - 1);
+                Chunk newChunk = GenerateChunk(position);
                 generatedChunks.Add(position, newChunk);
-                // UpdateChunkLOD(cameraPos, newChunk);
             }
         }
 
@@ -62,37 +59,7 @@ public class ChunkManager : MonoBehaviour
         chunksVisibleLastFrame = visibleChunkPositions;
     }
 
-    // void UpdateChunkLOD(Vector3 cameraPos, Chunk chunk)
-    // {
-    //     int lod = CalculateLOD(cameraPos, chunk.WorldSpacePosition, chunk.AverageHeight);
-    //     chunk.SetLOD(lod);
-    // }
-
-    int CalculateLOD(Vector3 cameraPos, Vector2 chunkPosition, float averageHeight)
-    {
-        float squaredDistance = (cameraPos - new Vector3(chunkPosition.x, averageHeight, chunkPosition.y)).sqrMagnitude;
-        int lod = 0;
-
-        if (squaredDistance > ChunkGlobals.worldSpaceChunkSize * ChunkGlobals.renderDistance * ChunkGlobals.worldSpaceChunkSize * ChunkGlobals.renderDistance)
-        {
-            lod = ChunkGlobals.lodNumSize - 1;
-            return lod;
-        }
-
-        for (int i = 0; i < ChunkGlobals.lodCutoffArray.Length; i++)
-        {
-            float lodCutoff = ChunkGlobals.lodCutoffArray[i] * ChunkGlobals.worldSpaceChunkSize * ChunkGlobals.renderDistance;
-
-            if (squaredDistance < lodCutoff * lodCutoff)
-            {
-                lod = i;
-                break;
-            }
-        }
-        return lod;
-    }
-
-    Chunk GenerateChunk(Vector2 position, int lod)
+    Chunk GenerateChunk(Vector2 position)
     {
         string chunkName = "Terrain Chunk: (" + (int)position.x / ChunkGlobals.worldSpaceChunkSize + ", " + (int)position.y / ChunkGlobals.worldSpaceChunkSize + ")";
         GameObject terrainChunk = new(chunkName);

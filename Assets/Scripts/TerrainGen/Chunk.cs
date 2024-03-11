@@ -1,25 +1,15 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-[RequireComponent(typeof(MeshFilter))]
-[RequireComponent(typeof(MeshRenderer))]
-[RequireComponent(typeof(MeshCollider))]
+// A chunk is a single unit of terrain in the world.
 [RequireComponent(typeof(LODGroup))]
-
 public class Chunk : MonoBehaviour
 {
     public Vector2 WorldSpacePosition { get; private set; }
-    public float AverageHeight { get; private set; }
 
     private GameObject parent;
-    // [SerializeField] private int lod;
 
-    private MeshRenderer meshRenderer;
-    private MeshFilter meshFilter;
-    private LOD[] lodList = new LOD[ChunkGlobals.lodNumArray.Length];
-
-    // private Mesh[] LodMeshList = new Mesh[ChunkGlobals.lodNumArray.Length];
-    // private Texture2D[] LodTextureList = new Texture2D[ChunkGlobals.lodNumArray.Length];
+    private LOD[] lodList = new LOD[ChunkGlobals.lodCount];
 
     // Initialize the chunk with its basic properties and generate its initial content.
     public void Initialize(GameObject parent, Vector2 worldSpacePosition)
@@ -34,9 +24,7 @@ public class Chunk : MonoBehaviour
 
         SetVisible(true);
 
-        // Setup components
-        meshFilter = GetComponent<MeshFilter>();
-        meshRenderer = GetComponent<MeshRenderer>();
+        // Setup component
         LODGroup lodGroup = GetComponent<LODGroup>();
 
         SetLODList(lodList);
@@ -44,126 +32,58 @@ public class Chunk : MonoBehaviour
         lodGroup.SetLODs(lodList);
         lodGroup.RecalculateBounds();
 
-        // GenerateTerrainContent();
     }
-
-    // void SetLODList(LOD[] lodList)
-    // {
-    //     LOD[] lods = new LOD[4];
-    //     for (int i = 0; i < 4; i++)
-    //     {
-    //         PrimitiveType primType = PrimitiveType.Cube;
-    //         switch (i)
-    //         {
-    //             case 1:
-    //                 primType = PrimitiveType.Capsule;
-    //                 break;
-    //             case 2:
-    //                 primType = PrimitiveType.Sphere;
-    //                 break;
-    //             case 3:
-    //                 primType = PrimitiveType.Cylinder;
-    //                 break;
-    //         }
-    //         GameObject go = GameObject.CreatePrimitive(primType);
-    //         go.transform.parent = gameObject.transform;
-    //         go.transform.position = go.transform.parent.position;
-    //         Renderer[] renderers = new Renderer[1];
-    //         renderers[0] = go.GetComponent<Renderer>();
-    //         lods[i] = new LOD((3 - i) / 4f, renderers);
-    //         lodList[i] = lods[i];
-    //     }
-    // }
 
     void SetLODList(LOD[] lodList)
     {
-        int lodCount = ChunkGlobals.lodNumArray.Length;
+        int lodCount = ChunkGlobals.lodCount;
+        Mesh[] meshArray = new Mesh[lodCount];
+        Texture2D[] textureArray = new Texture2D[lodCount];
+
+        GenerateTerrainContent(ref meshArray, ref textureArray, lodCount);
 
         for (int i = 0; i < lodCount; i++)
         {
-            // Create a new GameObject for this LOD level
-            GameObject go = new("LOD_" + i);
-            go.transform.parent = transform;
-            go.transform.localPosition = Vector3.zero;
+            GameObject go = InitializeLODGameObject(i, meshArray[i], textureArray[i]);
+            Renderer renderer = go.GetComponent<MeshRenderer>();
 
-            // Add required components
-            MeshFilter meshFilter = go.AddComponent<MeshFilter>();
-            MeshRenderer meshRenderer = go.AddComponent<MeshRenderer>();
-
-            // Generate terrain content (mesh and texture) for this LOD level
-            Renderer terrainRenderer = GenerateTerrainContent(i, meshFilter, meshRenderer); // Adjusted to pass MeshFilter and MeshRenderer
-
-            Renderer[] renderers = new Renderer[1];
-            renderers[0] = terrainRenderer;
-
-            // Set the LOD
-            if (i == lodCount - 1)
-            {
-                lodList[i] = new LOD(0, renderers);
-            }
-            else
-            {
-                lodList[i] = new LOD(1f / Mathf.Pow(2f, i + 1), renderers);
-            }
+            // Simplify LOD level calculation and setting
+            float screenRelativeTransitionHeight = (i == lodCount - 1) ? 0f : 1f / Mathf.Pow(2f, i + 1);
+            lodList[i] = new LOD(screenRelativeTransitionHeight, new Renderer[] { renderer });
         }
     }
 
-    private Renderer GenerateTerrainContent(int levelOfDetail, MeshFilter meshFilter, MeshRenderer meshRenderer)
+    GameObject InitializeLODGameObject(int index, Mesh mesh, Texture2D texture)
     {
-        // Generate mesh and texture based on levelOfDetail
-        float[] heightArray = NoiseGen.GeneratePerlinNoise(WorldSpacePosition, levelOfDetail);
-        Mesh mesh = MeshGen.GenerateMesh(heightArray);
-        Texture2D texture = TextureGen.GenerateTexture(heightArray);
+        GameObject go = new GameObject($"LOD_{index}");
+        go.transform.parent = transform;
+        go.transform.localPosition = Vector3.zero;
 
-        // Assign the generated mesh and texture
+        MeshFilter meshFilter = go.AddComponent<MeshFilter>();
+        MeshRenderer meshRenderer = go.AddComponent<MeshRenderer>();
+
         SetMesh(meshFilter, mesh);
         SetTexture(meshRenderer, texture);
 
-        // Calculate and set UVs - assuming CalcUVs modifies the mesh directly
-        CalcUVs(mesh, heightArray);
-
-        return meshRenderer;
+        return go;
     }
 
-    // Sets the Level of Detail (LOD) for the chunk, regenerating content if necessary.
-    // public void GetLODContent(int levelOfDetail)
-    // {
-    //     // No change needed if the LOD is already set to the desired level.
-    //     if (lod != newLOD)
-    //     {
-    //         lod = newLOD;
-    //         if (LodMeshList[lod] == null)
-    //         {
-    //             GenerateContentForLOD(lod);
-    //         }
-    //         else
-    //         {
-    //             // Apply existing LOD content without regenerating.
-    //             ApplyLODContent(lod);
-    //         }
-    //     }
-    // }
+    private void GenerateTerrainContent(ref Mesh[] meshes, ref Texture2D[] textures, int lodCount)
+    {
+        float[] heightArray = NoiseGen.GeneratePerlinNoise(WorldSpacePosition);
+        float[][] heightValueArrays = MeshPrune.GetHeightValueArrays(heightArray, lodCount);
 
-    // // Generates or applies content for a specific LOD.
-    // private Renderer GenerateTerrainContent(int levelOfDetail)
-    // {
-    //     float[] heightArray = NoiseGen.GeneratePerlinNoise(WorldSpacePosition, levelOfDetail - 1);
+        for (int i = 0; i < lodCount; i++)
+        {
+            // Use the original heightArray for the highest LOD, then use the pruned arrays for lower LODs
+            float[] currentHeightArray = (i == 0) ? heightArray : heightValueArrays[i - 1];
 
-    //     Mesh mesh = MeshGen.GenerateMesh(heightArray);
-    //     Texture2D texture = TextureGen.GenerateTexture(heightArray);
+            meshes[i] = MeshGen.GenerateMesh(currentHeightArray);
+            textures[i] = TextureGen.GenerateTexture(currentHeightArray);
 
-    //     SetMesh(meshFilter, mesh);
-    //     SetTexture(meshRenderer, texture);
-    //     CalcUVs(mesh, heightArray);
-
-    //     return meshRenderer;
-    // }
-
-    // // Applies mesh and texture for the current LOD.
-    // private void ApplyLODContent(int lod)
-    // {
-
-    // }
+            CalcUVs(meshes[i], currentHeightArray);
+        }
+    }
 
     // Sets the visibility of the chunk.
     public void SetVisible(bool visible)
@@ -201,11 +121,11 @@ public class Chunk : MonoBehaviour
     // Sets the texture for the chunk.
     private void SetTexture(MeshRenderer meshRenderer, Texture2D texture)
     {
-        if (meshRenderer.material == null)
+
+        meshRenderer.material = new Material(Shader.Find("Unlit/Texture"))
         {
-            meshRenderer.material = new Material(Shader.Find("Standard"));
-        }
-        meshRenderer.material.mainTexture = texture;
+            mainTexture = texture
+        };
         meshRenderer.material.SetFloat("_Glossiness", 0.0f);
         texture.filterMode = FilterMode.Point;
         texture.wrapMode = TextureWrapMode.Clamp;

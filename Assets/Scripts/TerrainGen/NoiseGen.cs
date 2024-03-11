@@ -6,29 +6,21 @@ public class NoiseGen
     private static NoiseSettings settings = NoiseSettings.CreateDefault();
     // private static readonly System.Random random = new(settings.Seed);
 
-    // Generates a 2D array of Perlin noise values with the given settings and detail level
-    public static float[] GeneratePerlinNoise(Vector2 worldSpacePosition, int detailLevel)
+    // Generates a 2D array of Perlin noise values with the given settings
+    public static float[] GeneratePerlinNoise(Vector2 worldSpacePosition)
     {
         // Length of the mesh measured in vertices
-        int vertexNum = CalculateVertexNum(detailLevel);
+        int vertexNum = ChunkGlobals.meshSpaceChunkSize + 1;
 
         float[] noiseMap = new float[vertexNum * vertexNum];
-
-        // Debug.Log($"Chunk size: {vertexNum}");
 
         // Generate and apply Perlin noise
         ApplyPerlinNoise(worldSpacePosition, vertexNum, ref noiseMap);
 
         // Normalize noise map values
-        NormalizeNoiseMap(vertexNum, ref noiseMap);
+        // NormalizeNoiseMap(vertexNum, ref noiseMap);
 
         return noiseMap;
-    }
-
-    private static int CalculateVertexNum(int detailLevel)
-    {
-        int levelOfDetail = Mathf.RoundToInt(Mathf.Pow(2, detailLevel));
-        return Mathf.Max((ChunkGlobals.meshSpaceChunkSize / levelOfDetail) + 1, 1);
     }
 
     private static void ApplyPerlinNoise(Vector2 worldSpacePosition, int vertexNum, ref float[] noiseMap)
@@ -40,6 +32,7 @@ public class NoiseGen
         noise.SetFrequency(settings.Scale);
         noise.SetFractalLacunarity(settings.Lacunarity);
         noise.SetFractalGain(settings.Persistence);
+
 
 
         System.Random random = new(settings.Seed);
@@ -64,60 +57,11 @@ public class NoiseGen
                 float sampleY = initialCoord + y * stepSize + worldSpacePosition.y + randomY;
 
 
-                noiseMap[y * vertexNum + x] += noise.GetNoise(sampleX, sampleY);
-
-            }
-
-        }
-
-        // float summedHeight = noiseMap[0] +
-        //                 noiseMap[vertexNum - 1] +
-        //                 noiseMap[(vertexNum - 1) * vertexNum] +
-        //                 noiseMap[(vertexNum - 1) * vertexNum + vertexNum - 1];
-
-        // averageHeight = summedHeight * ChunkGlobals.heightMultiplier / (4 * maxPossibleHeight);
-
-    }
-
-    private static void NormalizeNoiseMap(int vertexNum, ref float[] noiseMap)
-    {
-        for (int y = 0; y < vertexNum; y++)
-        {
-            for (int x = 0; x < vertexNum; x++)
-            {
+                noiseMap[y * vertexNum + x] = noise.GetNoise(sampleX, sampleY);
                 noiseMap[y * vertexNum + x] = Mathf.Clamp((noiseMap[y * vertexNum + x] + 0.825f) / 1.65f, 0f, 1f);
             }
         }
     }
-
-    // public static float GetAverageHeight(Vector2 worldSpacePosition, NoiseSettings settings)
-    // {
-    //     System.Random random = new(settings.Seed);
-    //     float amplitude = 1;
-    //     float frequency = 1;
-    //     float averageHeight = 0;
-    //     float maxPossibleHeight = 0;
-
-    //     for (int octave = 0; octave < settings.Octaves; octave++)
-    //     {
-    //         int randomX = random.Next(-1000, 1000);
-    //         int randomY = random.Next(-1000, 1000);
-
-    //         // Takes the starting point (bottom left corner of the mesh in world space) and adds the step size times which vertex we are on, thereby moving through each vertex position. 
-    //         // Then we add a random offset to x and y to prevent tiling effects.
-    //         // Finally multiply by the frequency so sample points are appropriately spread out.
-    //         float sampleX = (worldSpacePosition.x + randomX) * settings.Scale * frequency;
-    //         float sampleY = (worldSpacePosition.y + randomY) * settings.Scale * frequency;
-
-    //         averageHeight += Mathf.PerlinNoise(sampleX, sampleY) * amplitude;
-
-    //         maxPossibleHeight += amplitude;
-    //         amplitude *= settings.Persistence;
-    //         frequency *= settings.Lacunarity;
-    //     }
-
-    //     return averageHeight / maxPossibleHeight;
-    // }
 }
 
 [System.Serializable]
@@ -137,9 +81,9 @@ public struct NoiseSettings
     public NoiseSettings(int dummy)
     {
         ChunkSize = ChunkGlobals.meshSpaceChunkSize;
-        Scale = 0.05f;
+        Scale = 0.004f;
         Lacunarity = 2f;
-        Persistence = 0.4f;
+        Persistence = 0.5f;
         Octaves = 5;
         Seed = 0;
     }
