@@ -1,0 +1,42 @@
+#pragma kernel CSMain
+
+#include "SharedFunctions.hlsl"
+
+struct Point
+{
+    float2 worldSpaceChunkCenter;
+    float height;
+};
+
+float worldSpaceChunkSize;
+int meshLengthInVertices;
+
+RWStructuredBuffer<Point> points;
+
+[numthreads(1024,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    FNSetSeed(0);
+    FNSetNoiseType(2);
+    FNSetFractalType(0);
+    FNSetFrequency(0.01);
+    FNSetFractalOctaves(10);
+    FNSetFractalLacunarity(2);
+    FNSetFractalGain(0.5);
+    FNInit();
+    
+    float initialCoord = -worldSpaceChunkSize / 2;
+
+    // This gives the step size in world space. Ex: 10/2 = 5. This means 5 world space units between vertices.
+    float stepSize = worldSpaceChunkSize / (meshLengthInVertices - 1);
+
+    // Takes the starting point (bottom left corner of the mesh in world space) and adds the step size times which vertex we are on, thereby moving through each vertex position. 
+    // Then we add a random offset to x and y to prevent tiling effects.
+    // Finally multiply by the frequency so sample points are appropriately spread out.
+
+    float xPos = initialCoord + (id.x % meshLengthInVertices) * stepSize + points[id.x].worldSpaceChunkCenter[0];
+    float yPos = initialCoord + (id.x / meshLengthInVertices) * stepSize + points[id.x].worldSpaceChunkCenter[1];
+
+
+    points[id.x].height = ((FNGetPerlin(xPos, yPos) + 1) / 2);
+}

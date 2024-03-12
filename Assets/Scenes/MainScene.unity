@@ -491,15 +491,15 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 362436146}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.16504757, y: 0, z: 0, w: 0.9862857}
-  m_LocalPosition: {x: 0, y: 78, z: 0}
+  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 130, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 776261418}
   - {fileID: 963194228}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 19, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!114 &362436151
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -512,7 +512,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 951536c38ff056587a5aeca138220050, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  movementSpeed: 0.5
+  movementSpeed: 0.4
 --- !u!1 &705507993
 GameObject:
   m_ObjectHideFlags: 0
@@ -722,6 +722,7 @@ GameObject:
   m_Component:
   - component: {fileID: 777593363}
   - component: {fileID: 777593364}
+  - component: {fileID: 777593365}
   m_Layer: 0
   m_Name: ChunkGen
   m_TagString: Untagged
@@ -980,6 +981,19 @@ MonoBehaviour:
       m_PostInfinity: 2
       m_RotationOrder: 4
     MaxHeight: 1
+--- !u!114 &777593365
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 777593362}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54d32f8ef398d876e8757e984db4c732, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  noiseGen: {fileID: 7200000, guid: f50799d8f0653b583b82624a15a54549, type: 3}
 --- !u!1 &963194225
 GameObject:
   m_ObjectHideFlags: 0

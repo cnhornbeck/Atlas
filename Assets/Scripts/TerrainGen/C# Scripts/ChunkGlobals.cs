@@ -6,7 +6,7 @@ public class ChunkGlobals
     public const int meshSpaceChunkSize = 32;
 
     // Size of the actual mesh in the scene
-    public const float worldSpaceChunkSize = 32;
+    public const float worldSpaceChunkSize = 10;
     public const float heightMultiplier = 100;
-    public static int renderDistance = 15;
+    public static int renderDistance = 10;
 }

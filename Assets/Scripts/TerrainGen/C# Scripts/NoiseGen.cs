@@ -33,8 +33,6 @@ public class NoiseGen
         noise.SetFractalLacunarity(settings.Lacunarity);
         noise.SetFractalGain(settings.Persistence);
 
-
-
         System.Random random = new(settings.Seed);
 
         int randomX = random.Next(-1000, 1000);

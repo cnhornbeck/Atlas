@@ -70,7 +70,9 @@ public class Chunk : MonoBehaviour
 
     private void GenerateTerrainContent(ref Mesh[] meshes, ref Texture2D[] textures, int lodCount)
     {
-        float[] heightArray = NoiseGen.GeneratePerlinNoise(WorldSpacePosition);
+        GetNoiseFromCompute getNoiseFromCompute = transform.parent.GetComponent<GetNoiseFromCompute>();
+        // float[] heightArray = NoiseGen.GeneratePerlinNoise(WorldSpacePosition);
+        float[] heightArray = getNoiseFromCompute.GetNoiseMap(WorldSpacePosition, ChunkGlobals.meshSpaceChunkSize, ChunkGlobals.worldSpaceChunkSize);
         float[][] heightValueArrays = MeshPrune.GetHeightValueArrays(heightArray, lodCount);
 
         for (int i = 0; i < lodCount; i++)

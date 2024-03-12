@@ -37,7 +37,6 @@ public class ChunkManager : MonoBehaviour
                     // Enables the chunk
                     chunk.SetVisible(true);
                 }
-
             }
             else
             {
