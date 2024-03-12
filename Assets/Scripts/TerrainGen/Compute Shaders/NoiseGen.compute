@@ -17,13 +17,12 @@ RWStructuredBuffer<Point> points;
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
     FNSetSeed(0);
-    FNSetNoiseType(2);
+    FNSetNoiseType(3);
     FNSetFractalType(0);
-    FNSetFrequency(0.01);
-    FNSetFractalOctaves(10);
+    FNSetFrequency(0.002);
+    FNSetFractalOctaves(5);
     FNSetFractalLacunarity(2);
     FNSetFractalGain(0.5);
-    FNInit();
     
     float initialCoord = -worldSpaceChunkSize / 2;
 
@@ -38,5 +37,5 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     float yPos = initialCoord + (id.x / meshLengthInVertices) * stepSize + points[id.x].worldSpaceChunkCenter[1];
 
 
-    points[id.x].height = ((FNGetPerlin(xPos, yPos) + 1) / 2);
+    points[id.x].height = ((FNGetNoise(xPos, yPos) + 1) / 2);
 }
