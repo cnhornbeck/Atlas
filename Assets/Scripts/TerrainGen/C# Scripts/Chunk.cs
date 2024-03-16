@@ -38,7 +38,7 @@ public class Chunk : MonoBehaviour
     {
         int lodCount = ChunkGlobals.lodCount;
         Mesh[] meshArray = new Mesh[lodCount];
-        Texture2D[] textureArray = new Texture2D[lodCount];
+        Texture[] textureArray = new Texture[lodCount];
 
         GenerateTerrainContent(ref meshArray, ref textureArray, lodCount);
 
@@ -53,9 +53,9 @@ public class Chunk : MonoBehaviour
         }
     }
 
-    GameObject InitializeLODGameObject(int index, Mesh mesh, Texture2D texture)
+    GameObject InitializeLODGameObject(int lod, Mesh mesh, Texture texture)
     {
-        GameObject go = new GameObject($"LOD_{index}");
+        GameObject go = new GameObject($"LOD_{lod}");
         go.transform.parent = transform;
         go.transform.localPosition = Vector3.zero;
 
@@ -68,11 +68,17 @@ public class Chunk : MonoBehaviour
         return go;
     }
 
-    private void GenerateTerrainContent(ref Mesh[] meshes, ref Texture2D[] textures, int lodCount)
+    private void GenerateTerrainContent(ref Mesh[] meshes, ref Texture[] textures, int lodCount)
     {
-        GetNoiseFromCompute getNoiseFromCompute = transform.parent.GetComponent<GetNoiseFromCompute>();
         // float[] heightArray = NoiseGen.GeneratePerlinNoise(WorldSpacePosition);
-        float[] heightArray = getNoiseFromCompute.GetNoiseMap(WorldSpacePosition, ChunkGlobals.meshSpaceChunkSize, ChunkGlobals.worldSpaceChunkSize);
+
+        GetNoiseFromCompute getNoiseFromCompute = transform.parent.GetComponent<GetNoiseFromCompute>();
+        getNoiseFromCompute.CalculateMeshData(WorldSpacePosition, ChunkGlobals.meshSpaceChunkSize, ChunkGlobals.worldSpaceChunkSize);
+
+        float[] heightArray = getNoiseFromCompute.GetHeightData();
+        Texture[] textureData = getNoiseFromCompute.GetTextureData();
+        // Color[] colorArray = getNoiseFromCompute.GetColorData();
+
         float[][] heightValueArrays = MeshPrune.GetHeightValueArrays(heightArray, lodCount);
 
         for (int i = 0; i < lodCount; i++)
@@ -81,7 +87,8 @@ public class Chunk : MonoBehaviour
             float[] currentHeightArray = (i == 0) ? heightArray : heightValueArrays[i - 1];
 
             meshes[i] = MeshGen.GenerateMesh(currentHeightArray);
-            textures[i] = TextureGen.GenerateTexture(currentHeightArray);
+            // textures[i] = TextureGen.GenerateTexture(colorArray);
+            textures[i] = textureData[i];
 
             CalcUVs(meshes[i], currentHeightArray);
         }
@@ -121,7 +128,7 @@ public class Chunk : MonoBehaviour
     }
 
     // Sets the texture for the chunk.
-    private void SetTexture(MeshRenderer meshRenderer, Texture2D texture)
+    private void SetTexture(MeshRenderer meshRenderer, Texture texture)
     {
 
         meshRenderer.material = new Material(Shader.Find("Unlit/Texture"))
@@ -129,7 +136,5 @@ public class Chunk : MonoBehaviour
             mainTexture = texture
         };
         meshRenderer.material.SetFloat("_Glossiness", 0.0f);
-        texture.filterMode = FilterMode.Point;
-        texture.wrapMode = TextureWrapMode.Clamp;
     }
 }

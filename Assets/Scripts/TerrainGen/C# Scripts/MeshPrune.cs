@@ -28,7 +28,15 @@ public class MeshPrune
     private static float[] CreateLODArray(float[] heightArray, int currentMeshLengthInVertices, int meshLengthInVertices, int lodLevel)
     {
         float[] lodArray = new float[currentMeshLengthInVertices * currentMeshLengthInVertices];
-        int scaleFactor = Mathf.RoundToInt(Mathf.Min(Mathf.Pow(2, lodLevel + 1), meshLengthInVertices - 1));
+        // Calculate the base scale factor as 2 raised to the power of (lodLevel + 1)
+        float baseScaleFactor = Mathf.Pow(2, lodLevel + 1);
+
+        // Determine the maximum allowable scale factor based on mesh dimensions
+        int maxAllowedScaleFactor = meshLengthInVertices - 1;
+
+        // Choose the smaller of the two values and round to an integer
+        int scaleFactor = Mathf.RoundToInt(Mathf.Min(baseScaleFactor, maxAllowedScaleFactor));
+
 
         // Compare the two values in the above min function
         // Debug.Log($"{Mathf.Pow(2, lodLevel + 1)} vs {meshLengthInVertices - 1}");

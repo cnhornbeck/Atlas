@@ -1,57 +1,92 @@
+using System;
 using UnityEngine;
 
 public class GetNoiseFromCompute : MonoBehaviour
 {
-    public struct Point
-    {
-        public Vector2 worldSpaceChunkCenter;
-        public float height;
-    };
+    [SerializeField] private ComputeShader noiseGen;
 
-    [SerializeField] private ComputeShader noiseGen; // Assign in the Inspector instead of loading via AssetDatabase
+    private ComputeBuffer heightsBuffer;
 
-    private void Awake()
+    float[] heightsData;
+    private RenderTexture[] heightTextures;
+    private static NoiseSettings settings = NoiseSettings.CreateDefault();
+
+    public void CalculateMeshData(Vector2 worldSpacePosition, int meshSpaceChunkSize, float worldSpaceChunkSize)
     {
-        if (!noiseGen)
+        int vertexNum = (meshSpaceChunkSize + 1) * (meshSpaceChunkSize + 1);
+        // heightsBuffer = new ComputeBuffer(vertexNum, sizeof(float));
+
+        // // Initialize or reset ComputeBuffer and RenderTexture if not done or if parameters have changed
+        heightsBuffer = new ComputeBuffer(vertexNum, sizeof(float));
+        heightsData = new float[vertexNum]; // Initialize heights data array only when buffer is recreated
+        heightsBuffer.SetData(heightsData); // It's enough to set empty data once upon creation
+
+        // Set shader parameters
+        noiseGen.SetBuffer(0, "heights", heightsBuffer);
+        noiseGen.SetBuffer(1, "heights", heightsBuffer);
+        SetShaderParameters(worldSpaceChunkSize, meshSpaceChunkSize, worldSpacePosition.x, worldSpacePosition.y);
+
+        noiseGen.Dispatch(0, meshSpaceChunkSize, 1, 1); // Dispatch GetHeightValues
+
+        heightsBuffer.GetData(heightsData); // This is needed every time the buffer is updated
+        heightsBuffer.Release(); // Release the buffer after it's no longer needed
+
+        heightTextures = new RenderTexture[ChunkGlobals.lodCount];
+
+        for (int i = 0; i < ChunkGlobals.lodCount; i++)
         {
-            Debug.LogError("ComputeShader is not assigned.");
+            int textureSize = Math.Max(meshSpaceChunkSize >> i, 1);
+            int threadGroups = textureSize;
+            // print("Texture size: " + textureSize);
+            // print("Thread groups: " + threadGroups);
+
+            heightTextures[i] = new RenderTexture(textureSize, textureSize, 0, RenderTextureFormat.ARGBFloat)
+            {
+                enableRandomWrite = true,
+                filterMode = FilterMode.Point,
+                wrapMode = TextureWrapMode.Clamp
+            };
+            heightTextures[i].Create();
+            noiseGen.SetInt("lod", i);
+            noiseGen.SetTexture(1, "outputTexture", heightTextures[i]);
+            noiseGen.Dispatch(1, threadGroups, threadGroups, 1);
         }
     }
 
-    public float[] GetNoiseMap(Vector2 worldSpacePosition, int meshSpaceChunkSize, float worldSpaceChunkSize)
+    private void SetShaderParameters(float worldSpaceChunkSize, int meshSpaceChunkSize, float worldSpaceChunkCenterX, float worldSpaceChunkCenterY)
     {
-        int vertexNum = (meshSpaceChunkSize + 1) * (meshSpaceChunkSize + 1);
-        float[] heights = new float[vertexNum];
-
-        int stride = sizeof(float) * 2 + sizeof(float); // Adjusted stride to account for struct layout in memory
-
-        ComputeBuffer buffer = new(vertexNum, stride);
-        Point[] pointsData = new Point[vertexNum];
-
-        for (int i = 0; i < vertexNum; i++)
-        {
-            pointsData[i].worldSpaceChunkCenter = worldSpacePosition;
-        }
-
-        buffer.SetData(pointsData);
-
-        noiseGen.SetBuffer(0, "points", buffer);
         noiseGen.SetFloat("worldSpaceChunkSize", worldSpaceChunkSize);
         noiseGen.SetInt("meshLengthInVertices", meshSpaceChunkSize + 1);
+        noiseGen.SetFloat("worldSpaceChunkCenterX", worldSpaceChunkCenterX);
+        noiseGen.SetFloat("worldSpaceChunkCenterY", worldSpaceChunkCenterY);
+        noiseGen.SetInt("seed", settings.Seed);
+        noiseGen.SetFloat("frequency", settings.Scale);
+        noiseGen.SetInt("octaves", settings.Octaves);
+        noiseGen.SetFloat("lacunarity", settings.Lacunarity);
+        noiseGen.SetFloat("persistence", settings.Persistence);
 
-        // Calculate the correct number of thread groups based on your data
-        int threadGroups = Mathf.CeilToInt(vertexNum / 1024f);
-        noiseGen.Dispatch(0, threadGroups, 1, 1);
+        noiseGen.SetTexture(1, "colorLookupTexture", TextureGen.lookupTexture);
+    }
 
-        // Retrieve only the heights from the buffer
-        Point[] heightsData = new Point[vertexNum];
-        buffer.GetData(heightsData);
-        for (int i = 0; i < vertexNum; i++)
+    public float[] GetHeightData()
+    {
+        return heightsData;
+    }
+
+    public Texture[] GetTextureData()
+    {
+        return heightTextures;
+    }
+
+    private void OnDestroy()
+    {
+        heightsBuffer?.Release();
+        if (heightTextures != null)
         {
-            heights[i] = heightsData[i].height;
+            foreach (RenderTexture texture in heightTextures)
+            {
+                texture.Release();
+            }
         }
-
-        buffer.Release();
-        return heights;
     }
 }
