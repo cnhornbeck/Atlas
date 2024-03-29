@@ -1,39 +1,41 @@
-#pragma kernel GetHeightValues
+#pragma kernel GetVertices
 #pragma kernel GetColorValues
 
-#include "SharedFunctions.hlsl"
+#include "FastNoise.hlsl"
 
-float worldSpaceChunkSize;
-int meshLengthInVertices;
-float worldSpaceChunkCenterX;
-float worldSpaceChunkCenterY;
-
-int seed;
-float frequency;
-int octaves;
-float lacunarity;
-float persistence;
-
-int lod;
-
-RWStructuredBuffer<float> heights;
-
-// Texture to write the gradient to
-RWTexture2D<float4> outputTexture;
-
-Texture2D<float4> colorLookupTexture;
-
-SamplerState MeshTextureSampler
+// Static constants that don't change once set
+cbuffer StaticPerChunkConstants : register(b0)
 {
-    Filter = MIN_MAG_MIP_LINEAR;
-    AddressU = Wrap;
-    AddressV = Wrap;
+    // Mesh Parameters
+    float worldSpaceChunkSize;
+    int meshLengthInVertices;
+    int heightMultiplier;
+
+    // Noise Parameters
+    int seed;
+    float frequency;
+    int octaves;
+    float lacunarity;
+    float persistence;
+
+    // Texture Parameters
+    int textureWidth;
 };
 
-[numthreads(1024,1,1)]
-void GetHeightValues (uint3 id : SV_DispatchThreadID)
+// Dynamic constants that change between dispatches
+float worldSpaceChunkCenterX;
+float worldSpaceChunkCenterZ;
+
+// Buffers and Textures
+RWStructuredBuffer<float3> vertices;
+RWTexture2D<float4> outputTexture;
+Texture2D<float4> colorLookupTexture;
+
+// Compute Shader for generating vertex values
+[numthreads(1024, 1, 1)]
+void GetVertices (uint3 id : SV_DispatchThreadID)
 {
-    FNSetSeed(0);
+    FNSetSeed(seed);
     FNSetNoiseType(3);
     FNSetFractalType(0);
     FNSetFrequency(frequency);
@@ -41,44 +43,33 @@ void GetHeightValues (uint3 id : SV_DispatchThreadID)
     FNSetFractalLacunarity(lacunarity);
     FNSetFractalGain(persistence);
     
-    float initialCoord = -worldSpaceChunkSize / 2;
-
-    // This gives the step size in world space. Ex: 10/2 = 5. This means 5 world space units between vertices.
     float stepSize = worldSpaceChunkSize / (meshLengthInVertices - 1);
+    float initialCoord = -worldSpaceChunkSize / 2 + worldSpaceChunkCenterX;
+    float zPosInitialCoord = -worldSpaceChunkSize / 2 + worldSpaceChunkCenterZ;
 
-    // Takes the starting point (bottom left corner of the mesh in world space) and adds the step size times which vertex we are on, thereby moving through each vertex position. 
-    // Then we add a random offset to x and y to prevent tiling effects.
-    // Finally multiply by the frequency so sample points are appropriately spread out.
+    float xPos = initialCoord + (id.x % meshLengthInVertices) * stepSize;
+    float zPos = zPosInitialCoord + (id.x / meshLengthInVertices) * stepSize;
 
-    float xPos = initialCoord + (id.x % meshLengthInVertices) * stepSize + worldSpaceChunkCenterX;
-    float yPos = initialCoord + (id.x / meshLengthInVertices) * stepSize + worldSpaceChunkCenterY;
-
-    heights[id.x] = ((FNGetNoise(xPos, yPos) + 1) / 2);
+    vertices[id.x] = float3(xPos - worldSpaceChunkCenterX, ((FNGetNoise(xPos, zPos) + 1) / 2) * heightMultiplier, zPos - worldSpaceChunkCenterZ);
+    // vertices[id.x] = float3(worldSpaceChunkSize, worldSpaceChunkSize, worldSpaceChunkSize);
 }
 
+// Compute Shader for generating color values
 [numthreads(8, 8, 1)]
-void GetColorValues (uint3 id : SV_DispatchThreadID) {
-    // Calculate the base scale factor as 2 raised to the power of (lod)
-    float baseScaleFactor = pow(2, lod);
-
-    // Determine the maximum allowable scale factor based on mesh dimensions
-    int maxAllowedScaleFactor = meshLengthInVertices - 1;
-
-    // Choose the smaller of the two values
-    int scaleFactor = min(baseScaleFactor, maxAllowedScaleFactor);
+void GetColorValues (uint3 id : SV_DispatchThreadID)
+{
+    uint index = 1 * (id.x + id.y * meshLengthInVertices);
 
     float summedHeight =
-        heights[scaleFactor * (id.x + id.y * (meshLengthInVertices))] +
-        heights[scaleFactor * (id.x + 1 + id.y * (meshLengthInVertices))] +
-        heights[scaleFactor * (id.x + (id.y + 1) * (meshLengthInVertices))] +
-        heights[scaleFactor * (id.x + 1 + (id.y + 1) * (meshLengthInVertices))];
+        vertices[index].y +
+        vertices[index + 1].y +
+        vertices[index + 1 * meshLengthInVertices].y +
+        vertices[index + 1 * (meshLengthInVertices + 1)].y;
 
-    // Average height of the four corners of the square
-    float smoothedHeight = summedHeight / 4;
+    float smoothedHeight = summedHeight / (4 * heightMultiplier);
 
-    float3 texCoord = float3(smoothedHeight * 401, 0.5, 0); // Assuming x, y are your texture coordinates, and 0 for mip level
+    float3 texCoord = float3(smoothedHeight * textureWidth, 0.5, 0);
     float4 color = colorLookupTexture.Load(texCoord);
 
     outputTexture[id.xy] = color;
-    // outputTexture[id.xy] = float4(id.x / (float)(16 / pow(2, lod) - 1), id.y / (float)(16 / pow(2, lod) - 1), id.y / (float)(16 / pow(2, lod) - 1), 1);
 }

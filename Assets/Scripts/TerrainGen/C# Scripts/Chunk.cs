@@ -70,27 +70,23 @@ public class Chunk : MonoBehaviour
 
     private void GenerateTerrainContent(ref Mesh[] meshes, ref Texture[] textures, int lodCount)
     {
-        // float[] heightArray = NoiseGen.GeneratePerlinNoise(WorldSpacePosition);
+        GetDataFromCompute getDataFromCompute = transform.parent.GetComponent<GetDataFromCompute>();
+        getDataFromCompute.CalculateMeshData(WorldSpacePosition);
 
-        GetNoiseFromCompute getNoiseFromCompute = transform.parent.GetComponent<GetNoiseFromCompute>();
-        getNoiseFromCompute.CalculateMeshData(WorldSpacePosition, ChunkGlobals.meshSpaceChunkSize, ChunkGlobals.worldSpaceChunkSize);
+        Vector3[] vertexArray = getDataFromCompute.GetHeightData();
+        Texture textureData = getDataFromCompute.GetTextureData();
+        Mesh[] lodMeshArray = MeshGen.GenerateMeshes(vertexArray);
 
-        float[] heightArray = getNoiseFromCompute.GetHeightData();
-        Texture[] textureData = getNoiseFromCompute.GetTextureData();
-        // Color[] colorArray = getNoiseFromCompute.GetColorData();
-
-        float[][] heightValueArrays = MeshPrune.GetHeightValueArrays(heightArray, lodCount);
+        // float[][] heightValueArrays = MeshPrune.GetHeightValueArrays(heightArray, lodCount);
 
         for (int i = 0; i < lodCount; i++)
         {
             // Use the original heightArray for the highest LOD, then use the pruned arrays for lower LODs
-            float[] currentHeightArray = (i == 0) ? heightArray : heightValueArrays[i - 1];
+            // float[] currentHeightArray = (i == 0) ? heightArray : heightValueArrays[i - 1];
+            // Vector3[] currentHeightArray = heightArray;
 
-            meshes[i] = MeshGen.GenerateMesh(currentHeightArray);
-            // textures[i] = TextureGen.GenerateTexture(colorArray);
-            textures[i] = textureData[i];
-
-            CalcUVs(meshes[i], currentHeightArray);
+            meshes[i] = lodMeshArray[i];
+            textures[i] = textureData;
         }
     }
 
@@ -106,21 +102,6 @@ public class Chunk : MonoBehaviour
         return parent.activeSelf;
     }
 
-    // Calculates and sets UVs based on height array.
-    private void CalcUVs(Mesh mesh, float[] heightArray)
-    {
-        int size = (int)Mathf.Sqrt(heightArray.Length);
-        Vector2[] uvs = new Vector2[size * size];
-        for (int i = 0, y = 0; y < size; y++)
-        {
-            for (int x = 0; x < size; x++, i++)
-            {
-                uvs[i] = new Vector2(x / (float)(size - 1), y / (float)(size - 1));
-            }
-        }
-        mesh.SetUVs(0, new List<Vector2>(uvs));
-    }
-
     // Sets the mesh for the chunk.
     private void SetMesh(MeshFilter meshFilter, Mesh mesh)
     {
@@ -130,8 +111,8 @@ public class Chunk : MonoBehaviour
     // Sets the texture for the chunk.
     private void SetTexture(MeshRenderer meshRenderer, Texture texture)
     {
-
-        meshRenderer.material = new Material(Shader.Find("Unlit/Texture"))
+        // meshRenderer.material = new Material(Shader.Find("Unlit/Texture"))
+        meshRenderer.material = new Material(Shader.Find("Standard"))
         {
             mainTexture = texture
         };
