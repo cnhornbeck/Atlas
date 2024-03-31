@@ -51,7 +51,6 @@ void GetVertices (uint3 id : SV_DispatchThreadID)
     float zPos = zPosInitialCoord + (id.x / meshLengthInVertices) * stepSize;
 
     vertices[id.x] = float3(xPos - worldSpaceChunkCenterX, ((FNGetNoise(xPos, zPos) + 1) / 2) * heightMultiplier, zPos - worldSpaceChunkCenterZ);
-    // vertices[id.x] = float3(worldSpaceChunkSize, worldSpaceChunkSize, worldSpaceChunkSize);
 }
 
 // Compute Shader for generating color values

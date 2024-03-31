@@ -17,11 +17,37 @@ public class MeshGen
     }
 
 
-    private static Mesh GenerateMesh(Vector3[] vertexArray, int lod)
+    public static Mesh GenerateMesh(Vector3[] vertexArray, int lod)
     {
         int meshLengthInVertices = (int)Mathf.Sqrt(vertexArray.Length);
         // Generate the triangles
-        int[] triangles = GenerateMeshTriangles(meshLengthInVertices, lod);
+        // int[] triangles = GenerateMeshTriangles(meshLengthInVertices, lod);
+
+        Vector2[] uvs = CalcUVs(vertexArray);
+        // Create the terrain mesh and set its properties
+        Mesh terrainMesh = new()
+        {
+            name = "TerrainMesh",
+            indexFormat = UnityEngine.Rendering.IndexFormat.UInt32
+        };
+
+        // Set the mesh vertices, triangles, and normals
+        terrainMesh.SetVertices(vertexArray);
+        // terrainMesh.triangles = triangles;
+        terrainMesh.RecalculateNormals();
+        terrainMesh.SetUVs(0, new List<Vector2>(uvs));
+
+        // FlatShading(vertices, triangles, uvs, terrainMesh);
+
+        return terrainMesh;
+    }
+
+
+    public static Mesh GenerateMesh(Vector3[] vertexArray)
+    {
+        int meshLengthInVertices = (int)Mathf.Sqrt(vertexArray.Length);
+        // Generate the triangles
+        int[] triangles = GenerateMeshTriangles(meshLengthInVertices, ChunkGlobals.lodCount - 1);
 
         Vector2[] uvs = CalcUVs(vertexArray);
         // Create the terrain mesh and set its properties
@@ -40,40 +66,6 @@ public class MeshGen
         // FlatShading(vertices, triangles, uvs, terrainMesh);
 
         return terrainMesh;
-    }
-
-    // This function takes in an array of height values, the width and height of the mesh, the vertical separation between vertices, 
-    // the height multiplier, and the water height, and returns an array of Vector3 objects representing the vertices of the mesh.
-    private static Vector3[] GenerateMeshVertices(float[] heightArray, int meshLengthInVertices)
-    {
-        // Get the length of the height array, which is the number of vertices in the mesh.
-        int size = heightArray.Length;
-
-        // Calculate vertex separation length
-        float vertSep = ChunkGlobals.worldSpaceChunkSize / (meshLengthInVertices - 1);
-
-        // Create a new array to hold the vertex positions.
-        Vector3[] vertices = new Vector3[size];
-
-        // Calculate the half-width of the mesh.
-        float halfChunkSize = ChunkGlobals.worldSpaceChunkSize / 2;
-
-        // Loop through each vertex in the mesh.
-        for (int i = 0; i < size; i++)
-        {
-            // Calculate the y-position of the vertex based on the height value.
-            float y = heightArray[i] * ChunkGlobals.heightMultiplier;
-
-            // Calculate the x and z positions of the vertex based on the index i and the width and vertical separation of the mesh.
-            // The % and / operators are used to calculate the row and column of the vertex.
-            vertices[i] = new Vector3(
-                -halfChunkSize + vertSep * (i % meshLengthInVertices),
-                y,
-                -halfChunkSize + vertSep * (i / meshLengthInVertices));
-        }
-
-        // Return the array of vertex positions.
-        return vertices;
     }
 
     // This method generates the triangle indices for the mesh

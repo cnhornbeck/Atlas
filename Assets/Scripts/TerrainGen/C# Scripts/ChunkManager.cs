@@ -6,15 +6,13 @@ public class ChunkManager : MonoBehaviour
     int renderDistance;
     [SerializeField] List<TextureGen.TerrainLevel> colorList = new();
     static Dictionary<Vector2, Chunk> generatedChunks = new();
+    
     static HashSet<Vector2> chunksVisibleLastFrame = new();
-
-    [SerializeField] Texture2D colorLookupTexture;
 
     void Start()
     {
         renderDistance = ChunkGlobals.renderDistance;
         TextureGen.PreprocessColors(colorList);
-        colorLookupTexture = TextureGen.lookupTexture;
     }
 
     void Update()
