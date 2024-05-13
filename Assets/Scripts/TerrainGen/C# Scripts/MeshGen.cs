@@ -47,7 +47,7 @@ public class MeshGen
     {
         int meshLengthInVertices = (int)Mathf.Sqrt(vertexArray.Length);
         // Generate the triangles
-        int[] triangles = GenerateMeshTriangles(meshLengthInVertices, ChunkGlobals.lodCount - 1);
+        int[] triangles = GenerateMeshTriangles(meshLengthInVertices, 0);
 
         Vector2[] uvs = CalcUVs(vertexArray);
         // Create the terrain mesh and set its properties

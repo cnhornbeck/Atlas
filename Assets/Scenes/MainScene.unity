@@ -404,7 +404,7 @@ GameObject:
   - component: {fileID: 362436147}
   - component: {fileID: 362436151}
   - component: {fileID: 362436152}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: Player
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -737,7 +737,6 @@ GameObject:
   m_Component:
   - component: {fileID: 777593363}
   - component: {fileID: 777593364}
-  - component: {fileID: 777593365}
   - component: {fileID: 777593366}
   m_Layer: 0
   m_Name: ChunkGen
@@ -997,19 +996,6 @@ MonoBehaviour:
       m_PostInfinity: 2
       m_RotationOrder: 4
     MaxHeight: 1
---- !u!114 &777593365
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 777593362}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 54d32f8ef398d876e8757e984db4c732, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  noiseGen: {fileID: 7200000, guid: f50799d8f0653b583b82624a15a54549, type: 3}
 --- !u!114 &777593366
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1034,7 +1020,7 @@ GameObject:
   - component: {fileID: 963194227}
   - component: {fileID: 963194226}
   - component: {fileID: 963194229}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: Main Camera
   m_TagString: MainCamera
   m_Icon: {fileID: 0}

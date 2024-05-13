@@ -1,17 +1,23 @@
 using UnityEngine;
+using Unity.Collections;
+using Unity.Jobs;
+using Unity.VisualScripting;
+
 
 // A chunk is a single unit of terrain in the world.
 [RequireComponent(typeof(MeshFilter))]
 [RequireComponent(typeof(MeshRenderer))]
-[RequireComponent(typeof(LODManager))]
+// [RequireComponent(typeof(LODManager))]
 public class Chunk : MonoBehaviour
 {
     public Vector2 WorldSpacePosition { get; private set; }
     public Vector3 WorldSpaceChunkCenter { get; private set; }
     private GameObject parent;
-    private GetDataFromCompute getDataFromCompute;
-    private Vector3[] vertexArray;
-    private Texture textureData;
+    private NativeArray<Vector3> vertexArray;
+    Texture textureData;
+    Mesh meshData;
+    private JobHandle noiseGenJobHandle;
+    private bool jobStarted = false;
 
     // Initialize the chunk with its basic properties and generate its initial content.
     public void Initialize(GameObject parent, Vector2 worldSpacePosition)
@@ -20,34 +26,65 @@ public class Chunk : MonoBehaviour
         this.parent = parent;
 
         // Set the parent's position based on the world space position.
-        Vector3 worldPosition = new(worldSpacePosition.x, 0, worldSpacePosition.y);
+        Vector3 worldPosition = new Vector3(worldSpacePosition.x, 0, worldSpacePosition.y);
         parent.transform.position = worldPosition;
 
         SetVisible(true);
 
-        MeshFilter meshFilter = GetComponent<MeshFilter>();
-        MeshRenderer meshRenderer = GetComponent<MeshRenderer>();
+        // Allocate the vertex array for job
+        vertexArray = new NativeArray<Vector3>((ChunkGlobals.meshSpaceChunkSize + 1) * (ChunkGlobals.meshSpaceChunkSize + 1), Allocator.Persistent);
 
-        getDataFromCompute = transform.parent.GetComponent<GetDataFromCompute>();
-        getDataFromCompute.CalculateMeshData(WorldSpacePosition);
-
-        vertexArray = getDataFromCompute.GetHeightData();
-        textureData = getDataFromCompute.GetTextureData();
-
-        // SetAndGetComputeData();
-
-        Mesh mesh = MeshGen.GenerateMesh(vertexArray);
-
-        WorldSpaceChunkCenter = GetWorldSpaceChunkCenter(vertexArray);
-
-        LODManager lodManager = GetComponent<LODManager>();
-        lodManager.worldSpaceChunkCenter = WorldSpaceChunkCenter;
-
-        SetMesh(meshFilter, mesh);
-        SetTexture(meshRenderer, textureData);
+        // Schedule the noise generation job
+        noiseGenJobHandle = ScheduleNoiseGenJob();
+        jobStarted = true;
     }
 
-    private Vector3 GetWorldSpaceChunkCenter(Vector3[] vertexArray)
+    void Update()
+    {
+        if (jobStarted && noiseGenJobHandle.IsCompleted)
+        {
+            // Complete the job handle
+            noiseGenJobHandle.Complete();
+
+            textureData = new Texture2D(1, 1);
+            meshData = MeshGen.GenerateMesh(vertexArray.ToArray());
+
+            WorldSpaceChunkCenter = GetWorldSpaceChunkCenter(vertexArray);
+
+            // LODManager lodManager = GetComponent<LODManager>();
+            // lodManager.worldSpaceChunkCenter = WorldSpaceChunkCenter;
+
+            MeshFilter meshFilter = GetComponent<MeshFilter>();
+            MeshRenderer meshRenderer = GetComponent<MeshRenderer>();
+
+            SetMesh(meshFilter, meshData);
+            SetTexture(meshRenderer, textureData);
+
+            // Dispose of the heights array
+            vertexArray.Dispose();
+
+            jobStarted = false;
+        }
+    }
+
+    JobHandle ScheduleNoiseGenJob()
+    {
+        // Setup the job
+        NoiseGenJob job = new()
+        {
+            vertexArray = vertexArray,
+            worldSpaceChunkSize = ChunkGlobals.worldSpaceChunkSize,
+            meshLengthInVertices = ChunkGlobals.meshSpaceChunkSize + 1,
+            heightMultiplier = ChunkGlobals.heightMultiplier,
+            worldSpaceChunkCenterX = WorldSpacePosition.x,
+            worldSpaceChunkCenterZ = WorldSpacePosition.y
+        };
+
+        // Schedule the job
+        return job.Schedule(vertexArray.Length, 64);
+    }
+
+    private Vector3 GetWorldSpaceChunkCenter(NativeArray<Vector3> vertexArray)
     {
         int meshLengthInVertices = ChunkGlobals.meshSpaceChunkSize + 1;
 
@@ -63,15 +100,6 @@ public class Chunk : MonoBehaviour
 
         Vector3 worldSpaceChunkCenter = new(WorldSpacePosition.x, centerHeight, WorldSpacePosition.y);
         return worldSpaceChunkCenter;
-    }
-
-    void SetAndGetComputeData()
-    {
-        getDataFromCompute = transform.parent.GetComponent<GetDataFromCompute>();
-        getDataFromCompute.CalculateMeshData(WorldSpacePosition);
-
-        vertexArray = getDataFromCompute.GetHeightData();
-        textureData = getDataFromCompute.GetTextureData();
     }
 
     // Sets the visibility of the chunk.
