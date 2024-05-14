@@ -1,7 +1,5 @@
 using System;
-using System.Collections.Generic;
 using UnityEngine;
-using System.IO;
 using Unity.Jobs;
 using Unity.Burst;
 using Unity.Collections;
@@ -9,29 +7,6 @@ using System.Threading.Tasks;
 
 public class TextureGen
 {
-    static readonly int numberOfColors = 60;
-    static NativeArray<Color> lookupTable = new();
-
-    public static void PreprocessColors(List<TerrainLevel> terrainLevels)
-    {
-        List<Color> lookupTableList = new();
-        for (int i = 0; i <= numberOfColors; i++)
-        {
-            float previousMaxHeight = 0f;
-            foreach (TerrainLevel level in terrainLevels)
-            {
-                if (level.MaxHeight >= i / (float)numberOfColors)
-                {
-                    float lerpFactor = (i / (float)numberOfColors - previousMaxHeight) / (level.MaxHeight - previousMaxHeight);
-                    lookupTableList.Add(Color.Lerp(level.ColorStart, level.ColorEnd, level.Gradient.Evaluate(lerpFactor)));
-                    break;
-                }
-                previousMaxHeight = level.MaxHeight;
-            }
-        }
-        lookupTable = new NativeArray<Color>(lookupTableList.ToArray(), Allocator.Persistent);
-    }
-
     [BurstCompile]
     public struct TextureGenJob : IJobParallelFor
     {
@@ -74,9 +49,9 @@ public class TextureGen
         TextureGenJob job = new()
         {
             vertexArray = vertexArray,
-            lookupTable = lookupTable,
+            lookupTable = TexturePreCompute.lookupTable,
             colorData = colorData,
-            numberOfColors = numberOfColors
+            numberOfColors = TexturePreCompute.numberOfColors
         };
 
         JobHandle jobHandle = job.Schedule(colorData.Length, 64);
@@ -100,54 +75,6 @@ public class TextureGen
         colorData.Dispose();
 
         return textureData;
-    }
-
-    public static Texture2D GenerateTexture(float[] heightArray)
-    {
-        int textureSize = (int)Mathf.Sqrt(heightArray.Length) - 1;
-
-        Texture2D texture = new(textureSize, textureSize)
-        {
-            filterMode = FilterMode.Point, // Ensures sharp edges, important for pixel art or blocky styles
-            wrapMode = TextureWrapMode.Clamp // Prevents texture from tiling
-        };
-
-        // texture.SetPixels(MapColorsToHeight(heightArray, textureSize));
-        texture.Apply(); // Apply changes to the texture
-
-        return texture;
-    }
-
-    public static Texture2D GenerateTexture(Color[] colorData)
-    {
-        int textureSize = (int)Mathf.Sqrt(colorData.Length);
-
-        Texture2D texture = new(textureSize, textureSize)
-        {
-            filterMode = FilterMode.Point, // Ensures sharp edges, important for pixel art or blocky styles
-            wrapMode = TextureWrapMode.Clamp // Prevents texture from tiling
-        };
-
-        texture.SetPixels(colorData);
-        texture.Apply(); // Apply changes to the texture
-
-        return texture;
-    }
-
-    public static void SaveTextureToPNG(Texture2D texture, string filePath)
-    {
-        // Encode the texture into PNG format
-        byte[] bytes = texture.EncodeToPNG();
-        if (bytes != null && bytes.Length > 0)
-        {
-            // Write the bytes to a file
-            File.WriteAllBytes(filePath, bytes);
-            Debug.Log($"Texture saved to {filePath}");
-        }
-        else
-        {
-            Debug.LogError("Failed to encode texture to PNG.");
-        }
     }
 
     [Serializable]

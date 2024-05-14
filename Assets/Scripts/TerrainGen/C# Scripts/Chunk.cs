@@ -1,19 +1,16 @@
 using UnityEngine;
 using Unity.Collections;
-using Unity.Jobs;
-using System.Threading.Tasks;
 
 // A chunk is a single unit of terrain in the world.
 [RequireComponent(typeof(MeshFilter))]
 [RequireComponent(typeof(MeshRenderer))]
-// [RequireComponent(typeof(LODManager))]
+[RequireComponent(typeof(LODManager))]
 public class Chunk : MonoBehaviour
 {
     public Vector2 WorldSpacePosition { get; private set; }
     public Vector3 WorldSpaceChunkCenter { get; private set; }
     private GameObject parent;
-    private NativeArray<Vector3> vertexArray;
-    Mesh meshData;
+
 
     // Initialize the chunk with its basic properties and generate its initial content.
     public async void Initialize(GameObject parent, Vector2 worldSpacePosition)
@@ -33,28 +30,23 @@ public class Chunk : MonoBehaviour
         // Schedule the texture generation job
         Texture2D textureData = await TextureGen.ScheduleTextureGenJob(vertexArray);
 
-        // JobHandle meshGenJobHandle = MeshGen.ScheduleMeshGenJob(vertexArray);
-        // await RunJobAsync(meshGenJobHandle);
-
-        meshData = MeshGen.GenerateMesh(vertexArray.ToArray());
+        Mesh[] meshData = MeshGen.GetMeshes(vertexArray);
 
         WorldSpaceChunkCenter = GetWorldSpaceChunkCenter(vertexArray);
 
-        // LODManager lodManager = GetComponent<LODManager>();
-        // lodManager.worldSpaceChunkCenter = WorldSpaceChunkCenter;
+        LODManager lodManager = GetComponent<LODManager>();
+        lodManager.worldSpaceChunkCenter = WorldSpaceChunkCenter;
+        lodManager.meshes = meshData;
 
         MeshFilter meshFilter = GetComponent<MeshFilter>();
         MeshRenderer meshRenderer = GetComponent<MeshRenderer>();
 
-        SetMesh(meshFilter, meshData);
+        SetMesh(meshFilter, meshData[ChunkGlobals.lodCount - 1]);
         SetTexture(meshRenderer, textureData);
 
         // Dispose of the heights array
         vertexArray.Dispose();
     }
-
-    // Create async/await for the job
-
 
     private Vector3 GetWorldSpaceChunkCenter(NativeArray<Vector3> vertexArray)
     {

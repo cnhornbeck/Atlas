@@ -5,27 +5,34 @@ public class LODManager : MonoBehaviour
     Transform player;
     [SerializeField] int currentLOD;
     int meshLOD;
-    Mesh mesh;
-
+    MeshFilter meshFilter;
+    public Mesh[] meshes;
     public Vector3 worldSpaceChunkCenter;
 
     void Start()
     {
         player = Camera.main.transform;
-        mesh = GetComponent<MeshFilter>().mesh;
+        meshFilter = GetComponent<MeshFilter>();
         meshLOD = -1;
-        SetLOD();
     }
 
     void Update()
     {
+        if (meshes == null)
+        {
+            return;
+        }
+        CalculateLOD();
         SetLOD();
     }
 
     void SetLOD()
     {
-        CalculateLOD();
-        UpdateTriangles();
+        if (meshLOD != currentLOD)
+        {
+            meshFilter.mesh = meshes[currentLOD];
+            meshLOD = currentLOD;
+        }
     }
 
     void CalculateLOD()
@@ -41,14 +48,4 @@ public class LODManager : MonoBehaviour
             currentLOD = 0;
         }
     }
-
-    void UpdateTriangles()
-    {
-        if (meshLOD != currentLOD)
-        {
-            mesh.triangles = LODTriangleArrayGen.triangleArrays[currentLOD];
-            meshLOD = currentLOD;
-        }
-    }
-
 }

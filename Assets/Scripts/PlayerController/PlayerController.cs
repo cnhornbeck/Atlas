@@ -25,7 +25,9 @@ public class PlayerController : MonoBehaviour
     {
         HandleMovement();
         HandleRotation();
-        if (Input.GetKeyUp(KeyCode.Escape))
+
+        // If Escape key is pressed or left mouse button is clicked, toggle cursor lock 
+        if (Input.GetKeyUp(KeyCode.Escape) || Input.GetMouseButtonDown(0) && !isCursorLocked)
         {
             isCursorLocked = !isCursorLocked;
         }
@@ -35,13 +37,13 @@ public class PlayerController : MonoBehaviour
 
     private void HandleMovement()
     {
-        float x = Input.GetAxis("Horizontal");
-        float y = Input.GetAxis("Jump");
-        float z = Input.GetAxis("Vertical");
+        float x = Input.GetAxisRaw("Horizontal");
+        float y = Input.GetAxisRaw("Jump") + Input.GetAxisRaw("Crouch");
+        float z = Input.GetAxisRaw("Vertical");
 
         // Get value of scroll wheel
         float scroll = 0;
-        scroll += Input.GetAxis("Mouse ScrollWheel");
+        scroll += Input.GetAxisRaw("Mouse ScrollWheel");
         speed = Mathf.Pow(2, scroll * 2) * speed;
 
         Vector3 moveDirection = transform.right * x + transform.up * y + mainCamera.transform.forward * z;
@@ -50,8 +52,8 @@ public class PlayerController : MonoBehaviour
 
     private void HandleRotation()
     {
-        rotation.y += Input.GetAxis("Mouse X") * lookSensitivity;
-        rotation.x -= Input.GetAxis("Mouse Y") * lookSensitivity;
+        rotation.y += Input.GetAxisRaw("Mouse X") * lookSensitivity;
+        rotation.x -= Input.GetAxisRaw("Mouse Y") * lookSensitivity;
         rotation.x = Mathf.Clamp(rotation.x, -90, 90);
 
         // Apply rotation

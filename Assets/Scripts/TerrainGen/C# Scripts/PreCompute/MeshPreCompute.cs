@@ -1,20 +1,26 @@
 using UnityEngine;
 
-public class LODTriangleArrayGen : MonoBehaviour
+public class MeshPreCompute : MonoBehaviour
 {
-
-    public static int[][] triangleArrays;
-    // Start is called before the first frame update
     void Awake()
     {
-        triangleArrays = new int[ChunkGlobals.lodCount][];
+        ChunkGlobals.triangleArrays = GetLODTriangleArrays();
+        ChunkGlobals.uvArrays = GetLODUVArrays();
+    }
+
+    public static int[][] GetLODTriangleArrays()
+    {
+        int[][] triangleArrays = new int[ChunkGlobals.lodCount][];
+
         for (int i = 0; i < ChunkGlobals.lodCount; i++)
         {
             triangleArrays[i] = GenerateLODTriangleArray(ChunkGlobals.meshSpaceChunkSize + 1, i);
         }
+
+        return triangleArrays;
     }
 
-    static int[] GenerateLODTriangleArray(int meshLengthInVertices, int lod)
+    private static int[] GenerateLODTriangleArray(int meshLengthInVertices, int lod)
     {
         int lodMeshLengthInVertices = ((meshLengthInVertices - 1) / (int)Mathf.Pow(2, lod)) + 1;
 
@@ -56,24 +62,33 @@ public class LODTriangleArrayGen : MonoBehaviour
             }
         }
 
-        // Print the triangle array to the console by forming a string of three indices at a time
-
-        // if (lod == 0)
-        // {
-        //     Debug.Log($"Scale Factor: {scaleFactor}");
-        //     Debug.Log($"Mesh Length Vertices {meshLengthInVertices}");
-        //     Debug.Log($"lod Mesh Length Vertices {lodMeshLengthInVertices}");
-        //     Debug.Log($"Jump Factor: {ChunkGlobals.meshSpaceChunkSize - (int)Mathf.Pow(2, ChunkGlobals.lodCount - (lod + 1)) + 1}");
-        //     Debug.Log($"Jump Power: {(int)Mathf.Pow(2, ChunkGlobals.lodCount - (lod + 1))}");
-        //     string triangleString = "";
-        //     for (int i = 0; i < triangles.Length; i += 3)
-        //     {
-        //         triangleString += triangles[i] + ", " + triangles[i + 1] + ", " + triangles[i + 2] + "\n";
-        //     }
-        //     Debug.Log(triangleString);
-        // }
-
         // Return the array of triangle indices
         return triangles;
+    }
+
+    public static Vector2[][] GetLODUVArrays()
+    {
+        Vector2[][] uvArrays = new Vector2[ChunkGlobals.lodCount][];
+
+        for (int i = 0; i < ChunkGlobals.lodCount; i++)
+        {
+            uvArrays[i] = GenerateLODUVArray(i);
+        }
+
+        return uvArrays;
+    }
+
+    private static Vector2[] GenerateLODUVArray(int lod)
+    {
+        int size = ChunkGlobals.meshSpaceChunkSize / (int)Mathf.Pow(2, lod) + 1;
+        Vector2[] uvs = new Vector2[size * size];
+        for (int i = 0, y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++, i++)
+            {
+                uvs[i] = new Vector2(x / (float)(size - 1), y / (float)(size - 1));
+            }
+        }
+        return uvs;
     }
 }

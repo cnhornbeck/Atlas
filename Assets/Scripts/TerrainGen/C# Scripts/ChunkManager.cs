@@ -4,15 +4,12 @@ using UnityEngine;
 public class ChunkManager : MonoBehaviour
 {
     int renderDistance;
-    [SerializeField] List<TextureGen.TerrainLevel> colorList = new();
     static Dictionary<Vector2, Chunk> generatedChunks = new();
-    
     static HashSet<Vector2> chunksVisibleLastFrame = new();
 
     void Start()
     {
         renderDistance = ChunkGlobals.renderDistance;
-        TextureGen.PreprocessColors(colorList);
     }
 
     void Update()
