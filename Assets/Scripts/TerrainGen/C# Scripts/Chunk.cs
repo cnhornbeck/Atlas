@@ -1,8 +1,7 @@
 using UnityEngine;
 using Unity.Collections;
 using Unity.Jobs;
-using Unity.VisualScripting;
-
+using System.Threading.Tasks;
 
 // A chunk is a single unit of terrain in the world.
 [RequireComponent(typeof(MeshFilter))]
@@ -14,75 +13,48 @@ public class Chunk : MonoBehaviour
     public Vector3 WorldSpaceChunkCenter { get; private set; }
     private GameObject parent;
     private NativeArray<Vector3> vertexArray;
-    Texture textureData;
     Mesh meshData;
-    private JobHandle noiseGenJobHandle;
-    private bool jobStarted = false;
 
     // Initialize the chunk with its basic properties and generate its initial content.
-    public void Initialize(GameObject parent, Vector2 worldSpacePosition)
+    public async void Initialize(GameObject parent, Vector2 worldSpacePosition)
     {
         WorldSpacePosition = worldSpacePosition;
         this.parent = parent;
 
         // Set the parent's position based on the world space position.
-        Vector3 worldPosition = new Vector3(worldSpacePosition.x, 0, worldSpacePosition.y);
+        Vector3 worldPosition = new(worldSpacePosition.x, 0, worldSpacePosition.y);
         parent.transform.position = worldPosition;
 
         SetVisible(true);
 
-        // Allocate the vertex array for job
-        vertexArray = new NativeArray<Vector3>((ChunkGlobals.meshSpaceChunkSize + 1) * (ChunkGlobals.meshSpaceChunkSize + 1), Allocator.Persistent);
-
         // Schedule the noise generation job
-        noiseGenJobHandle = ScheduleNoiseGenJob();
-        jobStarted = true;
+        NativeArray<Vector3> vertexArray = await NoiseGen.ScheduleNoiseGenJob(WorldSpacePosition);
+
+        // Schedule the texture generation job
+        Texture2D textureData = await TextureGen.ScheduleTextureGenJob(vertexArray);
+
+        // JobHandle meshGenJobHandle = MeshGen.ScheduleMeshGenJob(vertexArray);
+        // await RunJobAsync(meshGenJobHandle);
+
+        meshData = MeshGen.GenerateMesh(vertexArray.ToArray());
+
+        WorldSpaceChunkCenter = GetWorldSpaceChunkCenter(vertexArray);
+
+        // LODManager lodManager = GetComponent<LODManager>();
+        // lodManager.worldSpaceChunkCenter = WorldSpaceChunkCenter;
+
+        MeshFilter meshFilter = GetComponent<MeshFilter>();
+        MeshRenderer meshRenderer = GetComponent<MeshRenderer>();
+
+        SetMesh(meshFilter, meshData);
+        SetTexture(meshRenderer, textureData);
+
+        // Dispose of the heights array
+        vertexArray.Dispose();
     }
 
-    void Update()
-    {
-        if (jobStarted && noiseGenJobHandle.IsCompleted)
-        {
-            // Complete the job handle
-            noiseGenJobHandle.Complete();
+    // Create async/await for the job
 
-            textureData = new Texture2D(1, 1);
-            meshData = MeshGen.GenerateMesh(vertexArray.ToArray());
-
-            WorldSpaceChunkCenter = GetWorldSpaceChunkCenter(vertexArray);
-
-            // LODManager lodManager = GetComponent<LODManager>();
-            // lodManager.worldSpaceChunkCenter = WorldSpaceChunkCenter;
-
-            MeshFilter meshFilter = GetComponent<MeshFilter>();
-            MeshRenderer meshRenderer = GetComponent<MeshRenderer>();
-
-            SetMesh(meshFilter, meshData);
-            SetTexture(meshRenderer, textureData);
-
-            // Dispose of the heights array
-            vertexArray.Dispose();
-
-            jobStarted = false;
-        }
-    }
-
-    JobHandle ScheduleNoiseGenJob()
-    {
-        // Setup the job
-        NoiseGenJob job = new()
-        {
-            vertexArray = vertexArray,
-            worldSpaceChunkSize = ChunkGlobals.worldSpaceChunkSize,
-            meshLengthInVertices = ChunkGlobals.meshSpaceChunkSize + 1,
-            heightMultiplier = ChunkGlobals.heightMultiplier,
-            worldSpaceChunkCenterX = WorldSpacePosition.x,
-            worldSpaceChunkCenterZ = WorldSpacePosition.y
-        };
-
-        // Schedule the job
-        return job.Schedule(vertexArray.Length, 64);
-    }
 
     private Vector3 GetWorldSpaceChunkCenter(NativeArray<Vector3> vertexArray)
     {

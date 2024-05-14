@@ -57,7 +57,7 @@ void GetVertices (uint3 id : SV_DispatchThreadID)
 [numthreads(8, 8, 1)]
 void GetColorValues (uint3 id : SV_DispatchThreadID)
 {
-    uint index = 1 * (id.x + id.y * meshLengthInVertices);
+    uint index = (id.x + id.y * meshLengthInVertices);
 
     float summedHeight =
         vertices[index].y +
