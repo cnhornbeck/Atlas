@@ -6,6 +6,7 @@ public class ChunkManager : MonoBehaviour
     int renderDistance;
     static Dictionary<Vector2, Chunk> generatedChunks = new();
     static HashSet<Vector2> chunksVisibleLastFrame = new();
+    static List<ChunkConstructor> finishedChunkConstructors = new();
 
     void Start()
     {
@@ -17,6 +18,9 @@ public class ChunkManager : MonoBehaviour
         renderDistance = ChunkGlobals.renderDistance;
         Vector3 cameraPos = Camera.main.transform.position;
         UpdateChunkVisibility(cameraPos);
+        ChunkConstructorManager.StartTextureGeneration();
+        finishedChunkConstructors = ChunkConstructorManager.GetFinishedChunks();
+        HandleFinishedChunks();
     }
 
     void UpdateChunkVisibility(Vector3 cameraPos)
@@ -38,7 +42,7 @@ public class ChunkManager : MonoBehaviour
             }
             else
             {
-                Chunk newChunk = GenerateChunk(position);
+                Chunk newChunk = QueueChunkGeneration(position);
                 generatedChunks.Add(position, newChunk);
             }
         }
@@ -56,16 +60,29 @@ public class ChunkManager : MonoBehaviour
         chunksVisibleLastFrame = visibleChunkPositions;
     }
 
-    Chunk GenerateChunk(Vector2 position)
+    Chunk QueueChunkGeneration(Vector2 position)
     {
         string chunkName = "Terrain Chunk: (" + (int)position.x / ChunkGlobals.worldSpaceChunkSize + ", " + (int)position.y / ChunkGlobals.worldSpaceChunkSize + ")";
         GameObject terrainChunk = new(chunkName);
         terrainChunk.transform.parent = transform;
 
         Chunk chunkComponent = terrainChunk.AddComponent<Chunk>();
-        chunkComponent.Initialize(terrainChunk, position);
+        chunkComponent.SetParent(terrainChunk);
+        ChunkConstructorManager.StartChunkGeneration(position);
 
         return chunkComponent;
+    }
+
+    void HandleFinishedChunks()
+    {
+        foreach (ChunkConstructor chunkConstructor in finishedChunkConstructors)
+        {
+            Vector2 chunkPosition = chunkConstructor.GetWorldSpacePosition();
+            Chunk chunk = generatedChunks[chunkPosition];
+            chunk.Initialize(chunkConstructor.GetMeshData(), chunkConstructor.GetTextureData(), chunkPosition);
+            chunksVisibleLastFrame.Add(chunkPosition);
+        }
+        finishedChunkConstructors.Clear();
     }
 
     public static HashSet<Vector2> GetVisibleChunkPositionsWithinRadius(Vector3 currentPositionVec3, int renderDistance)

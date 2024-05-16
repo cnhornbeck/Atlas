@@ -69,7 +69,7 @@ public class NoiseGen
         }
     }
 
-    public static async Task<NativeArray<Vector3>> ScheduleNoiseGenJob(Vector2 WorldSpacePosition)
+    public static JobData<Vector3> ScheduleNoiseGenJob(Vector2 WorldSpacePosition)
     {
         NoiseSettings noiseSettings = new();
         NativeArray<Vector3> vertexArray = new((ChunkGlobals.meshSpaceChunkSize + 1) * (ChunkGlobals.meshSpaceChunkSize + 1), Allocator.TempJob);
@@ -93,13 +93,12 @@ public class NoiseGen
         // Schedule the job
         JobHandle jobHandle = job.Schedule(vertexArray.Length, 64);
 
-        while (!jobHandle.IsCompleted)
-        {
-            await Task.Yield(); // Yield the task back to the Unity main loop until the job is complete
-        }
+        return new JobData<Vector3>(jobHandle, vertexArray);
+    }
 
-        jobHandle.Complete();
-
-        return vertexArray;
+    public static NativeArray<Vector3> CompleteNoiseGenJob(JobData<Vector3> jobData)
+    {
+        jobData.jobHandle.Complete();
+        return jobData.data;
     }
 }

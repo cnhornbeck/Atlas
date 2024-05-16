@@ -4,7 +4,7 @@ using Unity.Collections;
 
 public class TexturePreCompute : MonoBehaviour
 {
-    [SerializeField] List<TextureGen.TerrainLevel> colorList = new();
+    [SerializeField] List<TerrainLevelColor> colorList = new();
     public static readonly int numberOfColors = 60;
     public static NativeArray<Color> lookupTable = new();
 
@@ -15,13 +15,13 @@ public class TexturePreCompute : MonoBehaviour
     }
 
 
-    public void PreprocessColors(List<TextureGen.TerrainLevel> terrainLevels)
+    public void PreprocessColors(List<TerrainLevelColor> terrainLevels)
     {
         List<Color> lookupTableList = new();
         for (int i = 0; i <= numberOfColors; i++)
         {
             float previousMaxHeight = 0f;
-            foreach (TextureGen.TerrainLevel level in terrainLevels)
+            foreach (TerrainLevelColor level in terrainLevels)
             {
                 if (level.MaxHeight >= i / (float)numberOfColors)
                 {

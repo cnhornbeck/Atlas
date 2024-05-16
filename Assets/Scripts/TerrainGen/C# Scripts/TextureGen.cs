@@ -40,7 +40,7 @@ public class TextureGen
         }
     }
 
-    public static async Task<Texture2D> ScheduleTextureGenJob(NativeArray<Vector3> vertexArray)
+    public static JobData<Color> ScheduleTextureGenJob(NativeArray<Vector3> vertexArray)
     {
         int textureSize = ChunkGlobals.meshSpaceChunkSize;
 
@@ -55,35 +55,34 @@ public class TextureGen
         };
 
         JobHandle jobHandle = job.Schedule(colorData.Length, 64);
+        return new JobData<Color>(jobHandle, colorData);
+    }
 
-        while (!jobHandle.IsCompleted)
-        {
-            await Task.Yield(); // Yield the task back to the Unity main loop until the job is complete
-        }
+    public static Texture2D CompleteTextureGenJob(JobData<Color> jobData)
+    {
+        jobData.jobHandle.Complete();
 
-        jobHandle.Complete();
-
+        int textureSize = ChunkGlobals.meshSpaceChunkSize;
         Texture2D textureData = new(textureSize, textureSize)
         {
             filterMode = FilterMode.Point, // Ensures sharp edges, important for pixel art or blocky styles
             wrapMode = TextureWrapMode.Clamp // Prevents texture from tiling
         };
 
-        textureData.SetPixels(colorData.ToArray());
+        textureData.SetPixels(jobData.data.ToArray());
         textureData.Apply();
 
-        colorData.Dispose();
+        jobData.data.Dispose();
 
         return textureData;
     }
-
-    [Serializable]
-    public struct TerrainLevel
-    {
-        public string Name;
-        public Color ColorStart;
-        public Color ColorEnd;
-        public AnimationCurve Gradient;
-        [Range(0f, 1f)] public float MaxHeight;
-    }
+}
+[Serializable]
+public struct TerrainLevelColor
+{
+    public string Name;
+    public Color ColorStart;
+    public Color ColorEnd;
+    public AnimationCurve Gradient;
+    [Range(0f, 1f)] public float MaxHeight;
 }
