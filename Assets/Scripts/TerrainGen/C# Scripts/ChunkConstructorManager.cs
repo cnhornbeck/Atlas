@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Jobs;
 using Unity.Collections;
+using System;
 
 public class ChunkConstructorManager : MonoBehaviour
 {
@@ -20,7 +21,7 @@ public class ChunkConstructorManager : MonoBehaviour
         List<ChunkConstructor> finishedNoiseJobs = new();
         foreach (ChunkConstructor noiseJob in noiseJobs)
         {
-            if (noiseJob.GetNoiseJobStatus())
+            if (noiseJob.IsNoiseJobComplete())
             {
                 noiseJob.CompleteNoiseJob();
                 noiseJob.StartTextureJob();
@@ -41,7 +42,7 @@ public class ChunkConstructorManager : MonoBehaviour
         List<ChunkConstructor> finishedTextureJobs = new();
         foreach (ChunkConstructor textureJob in textureJobs)
         {
-            if (textureJob.GetTextureJobStatus())
+            if (textureJob.IsTextureJobComplete())
             {
                 textureJob.CompleteTextureJob();
                 textureJob.CreateMesh();
@@ -58,7 +59,7 @@ public class ChunkConstructorManager : MonoBehaviour
     }
 }
 
-public struct JobData<T> where T : struct
+public struct JobData<T> : IDisposable where T : struct
 {
     public JobHandle jobHandle;
     public NativeArray<T> data;
@@ -67,5 +68,13 @@ public struct JobData<T> where T : struct
     {
         this.jobHandle = jobHandle;
         this.data = data;
+    }
+
+    public void Dispose()
+    {
+        if (data.IsCreated)
+        {
+            data.Dispose();
+        }
     }
 }

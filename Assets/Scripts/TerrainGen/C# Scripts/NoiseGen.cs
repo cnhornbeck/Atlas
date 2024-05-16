@@ -3,8 +3,6 @@ using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
 using Unity.Burst;
-using System.Threading.Tasks;
-
 public class NoiseSettings
 {
     // Ratio between world space and mesh space
@@ -20,7 +18,7 @@ public class NoiseGen
     [BurstCompile]
     public struct NoiseGenJob : IJobParallelFor
     {
-        public NativeArray<Vector3> vertexArray;
+        [WriteOnly] public NativeArray<Vector3> vertexArray;
         [ReadOnly] public float scale;
         [ReadOnly] public float lacunarity;
         [ReadOnly] public float persistence;
@@ -34,6 +32,12 @@ public class NoiseGen
 
         public void Execute(int index)
         {
+            // Ensure index is within bounds before accessing the array
+            if (index < 0 || index >= vertexArray.Length)
+            {
+                return; // Or handle this case appropriately
+            }
+
             float stepSize = worldSpaceChunkSize / (meshLengthInVertices - 1);
             float initialCoord = -worldSpaceChunkSize / 2 + worldSpaceChunkCenterX;
             float zPosInitialCoord = -worldSpaceChunkSize / 2 + worldSpaceChunkCenterZ;
@@ -50,7 +54,7 @@ public class NoiseGen
             float total = 0;
             float frequency = 1;
             float amplitude = 1;
-            float maxValue = 0;  // Used for normalizing result to 0.0 - 1.0
+            float maxValue = 0; // Used for normalizing result to 0.0 - 1.0
             Unity.Mathematics.Random random = new((uint)seed);
 
             for (int i = 0; i < octaves; i++)
@@ -69,7 +73,7 @@ public class NoiseGen
         }
     }
 
-    public static JobData<Vector3> ScheduleNoiseGenJob(Vector2 WorldSpacePosition)
+    public static JobData<Vector3> ScheduleNoiseGenJob(Vector2 worldSpacePosition)
     {
         NoiseSettings noiseSettings = new();
         NativeArray<Vector3> vertexArray = new((ChunkGlobals.meshSpaceChunkSize + 1) * (ChunkGlobals.meshSpaceChunkSize + 1), Allocator.TempJob);
@@ -86,19 +90,21 @@ public class NoiseGen
             worldSpaceChunkSize = ChunkGlobals.worldSpaceChunkSize,
             meshLengthInVertices = ChunkGlobals.meshSpaceChunkSize + 1,
             heightMultiplier = ChunkGlobals.heightMultiplier,
-            worldSpaceChunkCenterX = WorldSpacePosition.x,
-            worldSpaceChunkCenterZ = WorldSpacePosition.y
+            worldSpaceChunkCenterX = worldSpacePosition.x,
+            worldSpaceChunkCenterZ = worldSpacePosition.y
         };
 
-        // Schedule the job
-        JobHandle jobHandle = job.Schedule(vertexArray.Length, 64);
+        int innerLoopBatchSize = math.min(64, (ChunkGlobals.meshSpaceChunkSize + 1) * (ChunkGlobals.meshSpaceChunkSize + 1));
 
+        JobHandle jobHandle = job.Schedule(vertexArray.Length, innerLoopBatchSize);
         return new JobData<Vector3>(jobHandle, vertexArray);
     }
+
 
     public static NativeArray<Vector3> CompleteNoiseGenJob(JobData<Vector3> jobData)
     {
         jobData.jobHandle.Complete();
         return jobData.data;
     }
+
 }

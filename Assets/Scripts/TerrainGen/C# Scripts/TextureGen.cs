@@ -3,7 +3,6 @@ using UnityEngine;
 using Unity.Jobs;
 using Unity.Burst;
 using Unity.Collections;
-using System.Threading.Tasks;
 
 public class TextureGen
 {
@@ -12,21 +11,31 @@ public class TextureGen
     {
         [ReadOnly] public NativeArray<Vector3> vertexArray;
         [ReadOnly] public NativeArray<Color> lookupTable;
-        public NativeArray<Color> colorData;
-        public float numberOfColors;
+        [ReadOnly] public int textureSize;
+        [ReadOnly] public float numberOfColors;
+        [WriteOnly] public NativeArray<Color> colorData;
         public void Execute(int index)
         {
-            int textureSize = ChunkGlobals.meshSpaceChunkSize;
-            int meshSize = textureSize + 1;
+            int meshSizeInVertices = textureSize + 1;
 
             int x = index % textureSize;
             int y = index / textureSize;
 
             // Calculate the indices of the vertices
-            int bottomLeft = y * meshSize + x;
+            int bottomLeft = y * meshSizeInVertices + x;
             int bottomRight = bottomLeft + 1;
-            int topLeft = bottomLeft + meshSize;
+            int topLeft = bottomLeft + meshSizeInVertices;
             int topRight = topLeft + 1;
+
+            // Ensure the indices are within the bounds of the vertexArray
+            if (bottomLeft < 0 || bottomLeft >= vertexArray.Length ||
+                bottomRight < 0 || bottomRight >= vertexArray.Length ||
+                topLeft < 0 || topLeft >= vertexArray.Length ||
+                topRight < 0 || topRight >= vertexArray.Length)
+            {
+                Debug.LogError($"Index out of bounds: index = {index}, bottomLeft = {bottomLeft}, bottomRight = {bottomRight}, topLeft = {topLeft}, topRight = {topRight}, textureSize = {textureSize}");
+                return; // Skip processing for this index
+            }
 
             float summedHeight =
                 vertexArray[bottomLeft].y +
@@ -36,6 +45,14 @@ public class TextureGen
 
             float smoothedHeight = ((summedHeight / (4 * ChunkGlobals.heightMultiplier)) + 1) / 2;
             int colorIndex = (int)(smoothedHeight * numberOfColors);
+
+            // Ensure the colorIndex is within the bounds of the lookupTable
+            if (colorIndex < 0 || colorIndex >= lookupTable.Length)
+            {
+                Debug.LogError($"Color index out of bounds: colorIndex = {colorIndex}, numberOfColors = {numberOfColors}, smoothedHeight = {smoothedHeight}");
+                return; // Skip processing for this index
+            }
+
             colorData[index] = lookupTable[colorIndex];
         }
     }
@@ -50,11 +67,14 @@ public class TextureGen
         {
             vertexArray = vertexArray,
             lookupTable = TexturePreCompute.lookupTable,
+            textureSize = textureSize,
             colorData = colorData,
             numberOfColors = TexturePreCompute.numberOfColors
         };
 
-        JobHandle jobHandle = job.Schedule(colorData.Length, 64);
+        int innerLoopBatchSize = Unity.Mathematics.math.min(64, textureSize * textureSize);
+
+        JobHandle jobHandle = job.Schedule(colorData.Length, innerLoopBatchSize);
         return new JobData<Color>(jobHandle, colorData);
     }
 
@@ -72,10 +92,11 @@ public class TextureGen
         textureData.SetPixels(jobData.data.ToArray());
         textureData.Apply();
 
-        jobData.data.Dispose();
+        jobData.Dispose();
 
         return textureData;
     }
+
 }
 [Serializable]
 public struct TerrainLevelColor

@@ -1,138 +1,75 @@
 using UnityEngine;
 using Unity.Collections;
-
+using System;
 
 public class ChunkConstructor
 {
     private JobData<Vector3> noiseJobData;
     private JobData<Color> textureJobData;
-    private NativeArray<Vector3> vertexArray;
-    private Texture2D textureData;
-    private Mesh[] meshData;
+    private NativeArray<Vector3> vertices;
+    private Texture2D texture;
+    private Mesh[] meshes;
     private Vector2 worldSpacePosition;
 
-    public void StartNoiseJob(Vector2 worldSpacePosition)
+    public void StartNoiseJob(Vector2 position)
     {
-        vertexArray = new NativeArray<Vector3>((ChunkGlobals.meshSpaceChunkSize + 1) * (ChunkGlobals.meshSpaceChunkSize + 1), Allocator.TempJob);
+        DisposeNoiseJobData(); // Ensure any previous noise job data is disposed of
+        worldSpacePosition = position;
         noiseJobData = NoiseGen.ScheduleNoiseGenJob(worldSpacePosition);
-
-        this.worldSpacePosition = worldSpacePosition;
-    }
-
-    public void StartTextureJob()
-    {
-        textureData = new Texture2D(ChunkGlobals.meshSpaceChunkSize, ChunkGlobals.meshSpaceChunkSize);
-        textureJobData = TextureGen.ScheduleTextureGenJob(vertexArray);
-    }
-
-    public void CreateMesh()
-    {
-        meshData = MeshGen.GetMeshes(vertexArray);
-        vertexArray.Dispose();
     }
 
     public void CompleteNoiseJob()
     {
-        vertexArray = NoiseGen.CompleteNoiseGenJob(noiseJobData);
+        // Ensure the noise job is completed and vertex array is correctly assigned
+        vertices = NoiseGen.CompleteNoiseGenJob(noiseJobData);
+    }
+
+    public void StartTextureJob()
+    {
+        // Ensure the noise job is complete before starting the texture job
+        if (!noiseJobData.jobHandle.IsCompleted)
+        {
+            throw new InvalidOperationException("Noise job must be completed before starting the texture job.");
+        }
+
+        CompleteNoiseJob(); // Ensure vertices are populated before starting the texture job
+        textureJobData = TextureGen.ScheduleTextureGenJob(vertices);
     }
 
     public void CompleteTextureJob()
     {
-        textureData = TextureGen.CompleteTextureGenJob(textureJobData);
+        texture = TextureGen.CompleteTextureGenJob(textureJobData);
     }
 
-    public NativeArray<Vector3> GetVertexArray()
+    public void CreateMesh()
     {
-        return vertexArray;
+        // Ensure the noise job is complete before creating the mesh
+        if (!noiseJobData.jobHandle.IsCompleted)
+        {
+            throw new InvalidOperationException("Noise job must be completed before creating the mesh.");
+        }
+
+        meshes = MeshGen.GetMeshes(vertices);
+        vertices.Dispose(); // Dispose of vertices as they are no longer needed
     }
 
-    public Texture2D GetTextureData()
+    public NativeArray<Vector3> GetVertices() => vertices;
+
+    public Texture2D GetTexture() => texture;
+
+    public Mesh[] GetMeshes() => meshes;
+
+    public bool IsNoiseJobComplete() => noiseJobData.jobHandle.IsCompleted;
+
+    public bool IsTextureJobComplete() => textureJobData.jobHandle.IsCompleted;
+
+    public Vector2 GetWorldSpacePosition() => worldSpacePosition;
+
+    private void DisposeNoiseJobData()
     {
-        return textureData;
+        if (noiseJobData.data.IsCreated)
+        {
+            noiseJobData.Dispose();
+        }
     }
-
-    public Mesh[] GetMeshData()
-    {
-        return meshData;
-    }
-
-    public bool GetNoiseJobStatus()
-    {
-        return noiseJobData.jobHandle.IsCompleted;
-    }
-
-    public bool GetTextureJobStatus()
-    {
-        return textureJobData.jobHandle.IsCompleted;
-    }
-
-    public Vector2 GetWorldSpacePosition()
-    {
-        return worldSpacePosition;
-    }
-
-    // public static ChunkData ConstructChunk(Vector2 worldSpacePosition)
-    // {
-    //     NativeArray<Vector3> vertexArray = AllocateVertexArray();
-    //     Texture2D textureData = AllocateTextureData();
-
-    //     RegisterNoiseGenerationJob(worldSpacePosition, ref vertexArray, ref textureData);
-
-    //     Mesh[] meshData = MeshGen.GetMeshes(vertexArray);
-    //     Vector3 worldSpaceChunkCenter = GetWorldSpaceChunkCenter(vertexArray, worldSpacePosition);
-
-    //     vertexArray.Dispose();
-
-    //     return new ChunkData(worldSpaceChunkCenter, meshData, textureData);
-    // }
-
-    // private static NativeArray<Vector3> AllocateVertexArray()
-    // {
-    //     return new NativeArray<Vector3>((ChunkGlobals.meshSpaceChunkSize + 1) * (ChunkGlobals.meshSpaceChunkSize + 1), Allocator.TempJob);
-    // }
-
-    // private static Texture2D AllocateTextureData()
-    // {
-    //     return new Texture2D(ChunkGlobals.meshSpaceChunkSize, ChunkGlobals.meshSpaceChunkSize);
-    // }
-
-    // private static void RegisterNoiseGenerationJob(Vector2 worldSpacePosition, ref NativeArray<Vector3> vertexArray, ref Texture2D textureData)
-    // {
-    //     JobManager.RegisterJob(
-    //         NoiseGen.ScheduleNoiseGenJob,
-    //         NoiseGen.CompleteNoiseGenJob,
-    //         worldSpacePosition,
-    //         ref vertexArray,
-    //         (scheduleJobMethod, completeJobMethod, input, ref NativeArray<Vector3> noiseOutput) =>
-    //         {
-    //             RegisterTextureGenerationJob(noiseOutput, ref textureData);
-    //         }
-    //     );
-    // }
-
-    // private static void RegisterTextureGenerationJob(NativeArray<Vector3> vertexArray, ref Texture2D textureData)
-    // {
-    //     JobManager.RegisterJob(
-    //         TextureGen.ScheduleTextureGenJob,
-    //         TextureGen.CompleteTextureGenJob,
-    //         vertexArray,
-    //         ref textureData
-    //     );
-    // }
-
-    // private static Vector3 GetWorldSpaceChunkCenter(NativeArray<Vector3> vertexArray, Vector2 worldSpacePosition)
-    // {
-    //     int meshLengthInVertices = ChunkGlobals.meshSpaceChunkSize + 1;
-
-    //     float summedHeight = (
-    //         vertexArray[0].y +
-    //         vertexArray[meshLengthInVertices - 1].y +
-    //         vertexArray[(meshLengthInVertices * meshLengthInVertices) - 1].y +
-    //         vertexArray[(meshLengthInVertices * meshLengthInVertices) - meshLengthInVertices].y
-    //     );
-
-    //     float centerHeight = summedHeight / 4;
-
-    //     return new Vector3(worldSpacePosition.x, centerHeight, worldSpacePosition.y);
-    // }
 }
