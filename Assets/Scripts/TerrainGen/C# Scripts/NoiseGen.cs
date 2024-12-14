@@ -6,11 +6,11 @@ using Unity.Burst;
 public class NoiseSettings
 {
     // Ratio between world space and mesh space
-    public float Scale = 0.015f;
+    public float Scale = 0.04f;
     public float Lacunarity = 2.5f;
     public float Persistence = 0.4f;
-    public int Octaves = 6;
-    public int Seed = 1337;
+    public int Octaves = 5;
+    public int Seed = 1327;
 }
 
 public class NoiseGen
@@ -96,15 +96,15 @@ public class NoiseGen
 
         int innerLoopBatchSize = math.min(64, (ChunkGlobals.meshSpaceChunkSize + 1) * (ChunkGlobals.meshSpaceChunkSize + 1));
 
-        JobHandle jobHandle = job.Schedule(vertexArray.Length, innerLoopBatchSize);
-        return new JobData<Vector3>(jobHandle, vertexArray);
+        JobHandle JobHandle = job.Schedule(vertexArray.Length, innerLoopBatchSize);
+        return new JobData<Vector3>(JobHandle, vertexArray);
     }
 
 
     public static NativeArray<Vector3> CompleteNoiseGenJob(JobData<Vector3> jobData)
     {
-        jobData.jobHandle.Complete();
-        return jobData.data;
+        jobData.JobHandle.Complete();
+        return jobData.Data;
     }
 
 }

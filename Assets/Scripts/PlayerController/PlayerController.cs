@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public class PlayerController : MonoBehaviour
 {
@@ -23,16 +24,25 @@ public class PlayerController : MonoBehaviour
 
     private void ProcessInput()
     {
-        HandleMovement();
-        HandleRotation();
 
-        // If Escape key is pressed or left mouse button is clicked, toggle cursor lock 
-        if (Input.GetKeyUp(KeyCode.Escape) || Input.GetMouseButtonDown(0) && !isCursorLocked)
+        bool isPointerOverUI = EventSystem.current.IsPointerOverGameObject();
+
+        // If Escape key is pressed or left mouse button is clicked (and not over a UI element), toggle cursor lock
+        if ((Input.GetKeyUp(KeyCode.Escape) || (Input.GetMouseButtonDown(0) && !isCursorLocked)) && !isPointerOverUI)
         {
             isCursorLocked = !isCursorLocked;
         }
+
         Cursor.lockState = isCursorLocked ? CursorLockMode.Locked : CursorLockMode.None;
         Cursor.visible = !isCursorLocked;
+
+        if (!isCursorLocked)
+        {
+            return;
+        }
+
+        HandleMovement();
+        HandleRotation();
     }
 
     private void HandleMovement()

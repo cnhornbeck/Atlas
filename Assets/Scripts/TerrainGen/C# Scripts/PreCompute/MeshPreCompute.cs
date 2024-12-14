@@ -4,8 +4,47 @@ public class MeshPreCompute : MonoBehaviour
 {
     void Awake()
     {
+        ChunkGlobals.vertexArrays = GetLODVertexArrays();
         ChunkGlobals.triangleArrays = GetLODTriangleArrays();
         ChunkGlobals.uvArrays = GetLODUVArrays();
+    }
+
+    public static Vector3[][] GetLODVertexArrays()
+    {
+        Vector3[][] vertexArrays = new Vector3[ChunkGlobals.lodCount][];
+
+        for (int i = 0; i < ChunkGlobals.lodCount; i++)
+        {
+            vertexArrays[i] = GenerateLODVertexArray(ChunkGlobals.meshSpaceChunkSize + 1, i);
+        }
+
+        return vertexArrays;
+    }
+
+    private static Vector3[] GenerateLODVertexArray(int meshLengthInVertices, int lod)
+    {
+        int lodMeshLengthInVertices = ((meshLengthInVertices - 1) / (int)Mathf.Pow(2, lod)) + 1;
+
+        if (lodMeshLengthInVertices < 2)
+        {
+            lodMeshLengthInVertices = 2;
+            lod = (int)(Mathf.Log(meshLengthInVertices - 1) / Mathf.Log(2));
+        }
+
+        // Create an array to hold the vertices
+        Vector3[] vertices = new Vector3[lodMeshLengthInVertices * lodMeshLengthInVertices];
+
+        // Iterate over each vertex in the mesh, setting the y-coordinate of each vertex to 0
+        for (int i = 0, y = 0; y < lodMeshLengthInVertices; y++)
+        {
+            for (int x = 0; x < lodMeshLengthInVertices; x++, i++)
+            {
+                vertices[i] = new Vector3(x * (int)Mathf.Pow(2, lod), 0, y * (int)Mathf.Pow(2, lod));
+            }
+        }
+
+        // Return the array of vertices
+        return vertices;
     }
 
     public static int[][] GetLODTriangleArrays()

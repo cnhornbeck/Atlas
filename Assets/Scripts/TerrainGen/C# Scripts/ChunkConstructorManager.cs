@@ -1,80 +1,103 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Jobs;
 using Unity.Collections;
-using System;
 
 public class ChunkConstructorManager : MonoBehaviour
 {
-    static List<ChunkConstructor> noiseJobs = new();
-    static List<ChunkConstructor> textureJobs = new();
+    private static List<ChunkConstructor> noiseJobs = new List<ChunkConstructor>();
+    private static List<ChunkConstructor> textureJobs = new List<ChunkConstructor>();
+    private const int MaxJobsPerFrame = 1;
 
+    /// <summary>
+    /// Initiates the chunk generation process for a given position.
+    /// </summary>
+    /// <param name="position">The position of the chunk to generate.</param>
     public static void StartChunkGeneration(Vector2 position)
     {
-        ChunkConstructor newChunkConstructor = new();
+        var newChunkConstructor = new ChunkConstructor();
         newChunkConstructor.StartNoiseJob(position);
         noiseJobs.Add(newChunkConstructor);
     }
 
+    /// <summary>
+    /// Processes completed noise jobs and starts texture generation for them.
+    /// </summary>
     public static void StartTextureGeneration()
     {
-        List<ChunkConstructor> finishedNoiseJobs = new();
-        foreach (ChunkConstructor noiseJob in noiseJobs)
+        var finishedNoiseJobs = new List<ChunkConstructor>();
+
+        foreach (var job in noiseJobs)
         {
-            if (noiseJob.IsNoiseJobComplete())
+            if (job.IsNoiseJobComplete())
             {
-                noiseJob.CompleteNoiseJob();
-                noiseJob.StartTextureJob();
-                finishedNoiseJobs.Add(noiseJob);
-                textureJobs.Add(noiseJob);
+                job.CompleteNoiseJob();
+                job.StartTextureJob();
+                finishedNoiseJobs.Add(job);
+                textureJobs.Add(job);
             }
         }
 
-        foreach (ChunkConstructor finishedNoiseJob in finishedNoiseJobs)
+        // Remove completed noise jobs
+        foreach (var finishedJob in finishedNoiseJobs)
         {
-            noiseJobs.Remove(finishedNoiseJob);
+            noiseJobs.Remove(finishedJob);
         }
     }
 
+    /// <summary>
+    /// Retrieves and processes finished chunks, limited by MaxJobsPerFrame.
+    /// </summary>
+    /// <returns>A list of finished chunk constructors.</returns>
     public static List<ChunkConstructor> GetFinishedChunks()
     {
-        List<ChunkConstructor> finishedChunks = new();
-        List<ChunkConstructor> finishedTextureJobs = new();
-        foreach (ChunkConstructor textureJob in textureJobs)
+        var finishedChunks = new List<ChunkConstructor>();
+        var finishedTextureJobs = new List<ChunkConstructor>();
+        int completedJobs = 0;
+
+        foreach (var job in textureJobs)
         {
-            if (textureJob.IsTextureJobComplete())
+            if (job.IsTextureJobComplete() && completedJobs < MaxJobsPerFrame)
             {
-                textureJob.CompleteTextureJob();
-                textureJob.CreateMesh();
-                finishedTextureJobs.Add(textureJob);
-                finishedChunks.Add(textureJob);
+                job.CompleteTextureJob();
+                job.CreateMesh();
+                finishedTextureJobs.Add(job);
+                finishedChunks.Add(job);
+                completedJobs++;
             }
         }
 
-        foreach (ChunkConstructor finishedTextureJob in finishedTextureJobs)
+        // Remove completed texture jobs
+        foreach (var finishedJob in finishedTextureJobs)
         {
-            textureJobs.Remove(finishedTextureJob);
+            textureJobs.Remove(finishedJob);
         }
+
         return finishedChunks;
     }
 }
 
-public struct JobData<T> : IDisposable where T : struct
+/// <summary>
+/// Struct to manage job data and its disposal.
+/// </summary>
+/// <typeparam name="T">The type of data in the NativeArray.</typeparam>
+public readonly struct JobData<T> : IDisposable where T : struct
 {
-    public JobHandle jobHandle;
-    public NativeArray<T> data;
+    public JobHandle JobHandle { get; }
+    public NativeArray<T> Data { get; }
 
     public JobData(JobHandle jobHandle, NativeArray<T> data)
     {
-        this.jobHandle = jobHandle;
-        this.data = data;
+        JobHandle = jobHandle;
+        Data = data;
     }
 
     public void Dispose()
     {
-        if (data.IsCreated)
+        if (Data.IsCreated)
         {
-            data.Dispose();
+            Data.Dispose();
         }
     }
 }

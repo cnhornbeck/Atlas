@@ -74,13 +74,13 @@ public class TextureGen
 
         int innerLoopBatchSize = Unity.Mathematics.math.min(64, textureSize * textureSize);
 
-        JobHandle jobHandle = job.Schedule(colorData.Length, innerLoopBatchSize);
-        return new JobData<Color>(jobHandle, colorData);
+        JobHandle JobHandle = job.Schedule(colorData.Length, innerLoopBatchSize);
+        return new JobData<Color>(JobHandle, colorData);
     }
 
     public static Texture2D CompleteTextureGenJob(JobData<Color> jobData)
     {
-        jobData.jobHandle.Complete();
+        jobData.JobHandle.Complete();
 
         int textureSize = ChunkGlobals.meshSpaceChunkSize;
         Texture2D textureData = new(textureSize, textureSize)
@@ -89,7 +89,7 @@ public class TextureGen
             wrapMode = TextureWrapMode.Clamp // Prevents texture from tiling
         };
 
-        textureData.SetPixels(jobData.data.ToArray());
+        textureData.SetPixels(jobData.Data.ToArray());
         textureData.Apply();
 
         jobData.Dispose();

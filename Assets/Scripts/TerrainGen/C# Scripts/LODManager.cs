@@ -39,9 +39,9 @@ public class LODManager : MonoBehaviour
     {
         float distance = Vector3.Distance(worldSpaceChunkCenter, player.position);
         currentLOD = Mathf.FloorToInt((distance / 15) - 1);
-        if (currentLOD > ChunkGlobals.lodCount - 1)
+        if (currentLOD > ChunkGlobals.lodCount - (1 + 4))
         {
-            currentLOD = ChunkGlobals.lodCount - 1;
+            currentLOD = ChunkGlobals.lodCount - (1 + 4);
         }
         if (currentLOD < 0)
         {

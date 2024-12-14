@@ -27,7 +27,7 @@ public class ChunkConstructor
     public void StartTextureJob()
     {
         // Ensure the noise job is complete before starting the texture job
-        if (!noiseJobData.jobHandle.IsCompleted)
+        if (!noiseJobData.JobHandle.IsCompleted)
         {
             throw new InvalidOperationException("Noise job must be completed before starting the texture job.");
         }
@@ -44,12 +44,12 @@ public class ChunkConstructor
     public void CreateMesh()
     {
         // Ensure the noise job is complete before creating the mesh
-        if (!noiseJobData.jobHandle.IsCompleted)
+        if (!noiseJobData.JobHandle.IsCompleted)
         {
             throw new InvalidOperationException("Noise job must be completed before creating the mesh.");
         }
 
-        meshes = MeshGen.GetMeshes(vertices);
+        meshes = MeshGen.GenerateMeshes(vertices);
         vertices.Dispose(); // Dispose of vertices as they are no longer needed
     }
 
@@ -59,15 +59,15 @@ public class ChunkConstructor
 
     public Mesh[] GetMeshes() => meshes;
 
-    public bool IsNoiseJobComplete() => noiseJobData.jobHandle.IsCompleted;
+    public bool IsNoiseJobComplete() => noiseJobData.JobHandle.IsCompleted;
 
-    public bool IsTextureJobComplete() => textureJobData.jobHandle.IsCompleted;
+    public bool IsTextureJobComplete() => textureJobData.JobHandle.IsCompleted;
 
     public Vector2 GetWorldSpacePosition() => worldSpacePosition;
 
     private void DisposeNoiseJobData()
     {
-        if (noiseJobData.data.IsCreated)
+        if (noiseJobData.Data.IsCreated)
         {
             noiseJobData.Dispose();
         }

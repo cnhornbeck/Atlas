@@ -5,7 +5,7 @@ using Unity.Collections;
 public class TexturePreCompute : MonoBehaviour
 {
     [SerializeField] List<TerrainLevelColor> colorList = new();
-    public static readonly int numberOfColors = 60;
+    public static readonly int numberOfColors = 200;
     public static NativeArray<Color> lookupTable = new();
 
     // Preprocess the colors
