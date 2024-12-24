@@ -81,7 +81,7 @@ public class Chunk : MonoBehaviour
     // Sets the texture for the chunk.
     private void SetTexture(MeshRenderer meshRenderer, Texture texture)
     {
-        meshRenderer.material = new Material(Shader.Find("Unlit/Texture"))
+        meshRenderer.material = new Material(Shader.Find("Universal Render Pipeline/Unlit"))
         // meshRenderer.material = new Material(Shader.Find("Standard"))
         {
             mainTexture = texture

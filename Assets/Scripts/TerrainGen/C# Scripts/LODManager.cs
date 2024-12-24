@@ -11,17 +11,36 @@ public class LODManager : MonoBehaviour
 
     void Start()
     {
+        if (Camera.main == null)
+        {
+            Debug.LogError("No main camera found in the scene. Ensure there is a Camera tagged as 'MainCamera'.");
+            return;
+        }
+
         player = Camera.main.transform;
         meshFilter = GetComponent<MeshFilter>();
+        if (meshFilter == null)
+        {
+            Debug.LogError("No MeshFilter component found on this GameObject.");
+            return;
+        }
+
         meshLOD = -1;
+
+        if (meshes == null || meshes.Length == 0)
+        {
+            Debug.LogError("Meshes array is not assigned or empty. Assign meshes in the Inspector.");
+        }
     }
 
     void Update()
     {
-        if (meshes == null)
+        if (meshes == null || meshes.Length == 0)
         {
+            Debug.LogWarning("Skipping Update because meshes array is not assigned or empty.");
             return;
         }
+
         CalculateLOD();
         SetLOD();
     }
@@ -30,6 +49,13 @@ public class LODManager : MonoBehaviour
     {
         if (meshLOD != currentLOD)
         {
+            if (currentLOD < 0 || currentLOD >= meshes.Length)
+            {
+                Debug.LogError($"currentLOD ({currentLOD}) is out of bounds. Meshes array size: {meshes.Length}.");
+                return;
+            }
+
+            // Debug.Log($"Updating LOD: Setting meshLOD from {meshLOD} to {currentLOD}.");
             meshFilter.mesh = meshes[currentLOD];
             meshLOD = currentLOD;
         }
@@ -38,14 +64,18 @@ public class LODManager : MonoBehaviour
     void CalculateLOD()
     {
         float distance = Vector3.Distance(worldSpaceChunkCenter, player.position);
+        // Debug.Log($"Player distance from chunk center: {distance}");
+
         currentLOD = Mathf.FloorToInt((distance / 15) - 1);
-        if (currentLOD > ChunkGlobals.lodCount - (1 + 4))
+        if (currentLOD >= meshes.Length)
         {
-            currentLOD = ChunkGlobals.lodCount - (1 + 4);
+            currentLOD = meshes.Length - 1;
         }
         if (currentLOD < 0)
         {
             currentLOD = 0;
         }
+
+        // Debug.Log($"Calculated LOD: {currentLOD}");
     }
 }

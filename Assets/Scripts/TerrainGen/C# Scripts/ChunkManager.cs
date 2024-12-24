@@ -20,7 +20,7 @@ public class ChunkManager : MonoBehaviour
         UpdateChunkVisibility(cameraPos);
         ChunkConstructorManager.StartTextureGeneration();
         finishedChunkConstructors = ChunkConstructorManager.GetFinishedChunks();
-        HandleFinishedChunks();
+        HandleFinishedChunks(finishedChunkConstructors);
     }
 
     void UpdateChunkVisibility(Vector3 cameraPos)
@@ -73,7 +73,7 @@ public class ChunkManager : MonoBehaviour
         return chunkComponent;
     }
 
-    void HandleFinishedChunks()
+    void HandleFinishedChunks(List<ChunkConstructor> finishedChunkConstructors)
     {
         foreach (ChunkConstructor chunkConstructor in finishedChunkConstructors)
         {
@@ -89,36 +89,37 @@ public class ChunkManager : MonoBehaviour
     {
         int estimatedCapacity = (int)(Mathf.PI * renderDistance * renderDistance);
         HashSet<Vector2> visibleChunkPositionsWithinRadius = new HashSet<Vector2>(estimatedCapacity);
-        float squaredRenderDistance = renderDistance * ChunkGlobals.worldSpaceChunkSize * renderDistance * ChunkGlobals.worldSpaceChunkSize;
 
-        float xPos = Mathf.RoundToInt(currentPositionVec3.x / ChunkGlobals.worldSpaceChunkSize) * ChunkGlobals.worldSpaceChunkSize;
-        float yPos = Mathf.RoundToInt(currentPositionVec3.z / ChunkGlobals.worldSpaceChunkSize) * ChunkGlobals.worldSpaceChunkSize;
+        // Get current chunk position in "chunk space"
+        int currentChunkX = Mathf.RoundToInt(currentPositionVec3.x / ChunkGlobals.worldSpaceChunkSize);
+        int currentChunkZ = Mathf.RoundToInt(currentPositionVec3.z / ChunkGlobals.worldSpaceChunkSize);
 
+        float squaredRenderDistance = renderDistance * renderDistance;
+
+        // Loop over chunk offsets in a square
         for (int xOffset = -renderDistance; xOffset <= renderDistance; xOffset++)
         {
-            float xCoord = xPos + xOffset * ChunkGlobals.worldSpaceChunkSize;
-            float xOffsetSquared = xOffset * ChunkGlobals.worldSpaceChunkSize * xOffset * ChunkGlobals.worldSpaceChunkSize;
-            float maxYSquared = squaredRenderDistance - xOffsetSquared;
-
-            if (maxYSquared < 0)
+            for (int zOffset = -renderDistance; zOffset <= renderDistance; zOffset++)
             {
-                continue; // Skip iteration if the maxYSquared is negative (which means xOffset is outside the circle)
-            }
+                // Compute squared distance in chunk space
+                float distanceSquared = xOffset * xOffset + zOffset * zOffset;
 
-            float maxY = Mathf.Sqrt(maxYSquared) / ChunkGlobals.worldSpaceChunkSize;
-            int ySpan = Mathf.RoundToInt(maxY);
+                // Check if within the circular render distance
+                if (distanceSquared <= squaredRenderDistance)
+                {
+                    int chunkX = currentChunkX + xOffset;
+                    int chunkZ = currentChunkZ + zOffset;
 
-            for (int yOffset = -ySpan; yOffset <= ySpan; yOffset++)
-            {
-                float zCoord = yPos + yOffset * ChunkGlobals.worldSpaceChunkSize;
-                Vector2 chunkPosition = new Vector2(xCoord, zCoord);
-                visibleChunkPositionsWithinRadius.Add(chunkPosition);
+                    // Convert back to world space
+                    float xCoord = chunkX * ChunkGlobals.worldSpaceChunkSize;
+                    float zCoord = chunkZ * ChunkGlobals.worldSpaceChunkSize;
+
+                    visibleChunkPositionsWithinRadius.Add(new Vector2(xCoord, zCoord));
+                }
             }
         }
 
         return visibleChunkPositionsWithinRadius;
     }
-
-
 }
 
