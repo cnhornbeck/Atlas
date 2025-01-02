@@ -26,18 +26,12 @@ public class LODManager : MonoBehaviour
         }
 
         meshLOD = -1;
-
-        if (meshes == null || meshes.Length == 0)
-        {
-            Debug.LogError("Meshes array is not assigned or empty. Assign meshes in the Inspector.");
-        }
     }
 
     void Update()
     {
         if (meshes == null || meshes.Length == 0)
         {
-            Debug.LogWarning("Skipping Update because meshes array is not assigned or empty.");
             return;
         }
 

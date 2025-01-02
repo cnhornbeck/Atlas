@@ -1,10 +1,9 @@
 using UnityEngine;
-using Unity.Collections;
 
 // A chunk is a single unit of terrain in the world.
 [RequireComponent(typeof(MeshFilter))]
 [RequireComponent(typeof(MeshRenderer))]
-[RequireComponent(typeof(LODManager))]
+// [RequireComponent(typeof(LODManager))]
 public class Chunk : MonoBehaviour
 {
     public Vector2 WorldSpacePosition { get; private set; }
@@ -24,41 +23,18 @@ public class Chunk : MonoBehaviour
 
         MeshFilter meshFilter = GetComponent<MeshFilter>();
         MeshRenderer meshRenderer = GetComponent<MeshRenderer>();
-        LODManager lodManager = GetComponent<LODManager>();
+        // LODManager lodManager = GetComponent<LODManager>();
 
         SetMesh(meshFilter, meshes[0]);
         SetTexture(meshRenderer, texture);
-        lodManager.worldSpaceChunkCenter = worldPosition;
-        lodManager.meshes = meshes;
+        // lodManager.worldSpaceChunkCenter = worldPosition;
+        // lodManager.meshes = meshes;
     }
 
     public void SetParent(GameObject parent)
     {
         this.parent = parent;
     }
-    // {
-    //     WorldSpacePosition = worldSpacePosition;
-    //     this.parent = parent;
-
-    //     // Set the parent's position based on the world space position.
-    //     Vector3 worldPosition = new(worldSpacePosition.x, 0, worldSpacePosition.y);
-    //     parent.transform.position = worldPosition;
-
-    //     SetVisible(true);
-
-    //     MeshFilter meshFilter = GetComponent<MeshFilter>();
-    //     MeshRenderer meshRenderer = GetComponent<MeshRenderer>();
-    //     LODManager lodManager = GetComponent<LODManager>();
-
-    //     // Construct the chunk
-    //     ChunkData chunkData = ChunkConstructor.ConstructChunk(worldSpacePosition);
-
-    //     WorldSpaceChunkCenter = chunkData.worldSpaceChunkCenter;
-    //     SetMesh(meshFilter, chunkData.meshes[0]);
-    //     SetTexture(meshRenderer, chunkData.texture);
-    //     lodManager.worldSpaceChunkCenter = WorldSpaceChunkCenter;
-    //     lodManager.meshes = chunkData.meshes;
-    // }
 
     // Sets the visibility of the chunk.
     public void SetVisible(bool visible)

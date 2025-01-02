@@ -19,10 +19,11 @@ public class MeshGen
         int totalLodCount = CalculateTotalLODCount();
         Mesh[] meshes = new Mesh[totalLodCount];
 
-        GenerateHighResolutionLODs(meshes, vertexArray);
-        GenerateLowResolutionLOD(meshes, vertexArray);
+        meshes[0] = GenerateSingleMesh(vertexArray.ToArray(), 0);
 
-        Array.Reverse(meshes);  // Arrange meshes from lowest to highest detail
+        // GenerateHighResolutionLODs(meshes, vertexArray);
+        // GenerateLowResolutionLOD(meshes, vertexArray);
+
         return meshes;
     }
 
@@ -43,38 +44,51 @@ public class MeshGen
             indexFormat = IndexFormat.UInt32
         };
 
-        terrainMesh.SetVertices(vertices);
-        terrainMesh.triangles = triangles;
-        terrainMesh.RecalculateNormals();
-        terrainMesh.SetUVs(0, new List<Vector2>(uvs));
+        // terrainMesh.vertices = vertices;
+
+        var layout = new[]
+        {
+            new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3),
+        };
+        terrainMesh.SetVertexBufferParams(vertices.Length, layout);
+        terrainMesh.SetVertexBufferData(vertices, 0, 0, vertices.Length);
+
+        terrainMesh.SetIndexBufferParams(triangles.Length, IndexFormat.UInt32);
+        terrainMesh.SetIndexBufferData(triangles, 0, 0, triangles.Length);
+
+        terrainMesh.subMeshCount = 1;
+        terrainMesh.SetSubMesh(0, new SubMeshDescriptor(0, triangles.Length));
+
+
+        // terrainMesh.triangles = triangles;
+        // terrainMesh.RecalculateNormals();
+        terrainMesh.uv = uvs;
 
         return terrainMesh;
     }
 
     private static int CalculateTotalLODCount()
     {
-        int lodCount = ChunkGlobals.lodCount;
-        int highestLodCount = Math.Min(3, lodCount);
-        return highestLodCount + (lodCount > highestLodCount ? 1 : 0);
+        return 1;
     }
 
-    private static void GenerateHighResolutionLODs(Mesh[] meshes, NativeArray<Vector3> vertexArray)
-    {
-        int highestLodCount = Math.Min(3, ChunkGlobals.lodCount);
-        for (int i = 0; i < highestLodCount; i++)
-        {
-            int lodIndex = ChunkGlobals.lodCount - 1 - i;
-            meshes[i] = GenerateSingleMesh(vertexArray.ToArray(), lodIndex);
-        }
-    }
+    // private static void GenerateHighResolutionLODs(Mesh[] meshes, NativeArray<Vector3> vertexArray)
+    // {
+    //     int highestLodCount = Math.Min(3, ChunkGlobals.lodCount);
+    //     for (int i = 0; i < highestLodCount; i++)
+    //     {
+    //         int lodIndex = ChunkGlobals.lodCount - 1 - i;
+    //         meshes[i] = GenerateSingleMesh(vertexArray.ToArray(), lodIndex);
+    //     }
+    // }
 
-    private static void GenerateLowResolutionLOD(Mesh[] meshes, NativeArray<Vector3> vertexArray)
-    {
-        if (ChunkGlobals.lodCount > 3)
-        {
-            meshes[3] = GenerateSingleMesh(vertexArray.ToArray(), 0);
-        }
-    }
+    // private static void GenerateLowResolutionLOD(Mesh[] meshes, NativeArray<Vector3> vertexArray)
+    // {
+    //     if (ChunkGlobals.lodCount > 3)
+    //     {
+    //         meshes[3] = GenerateSingleMesh(vertexArray.ToArray(), 0);
+    //     }
+    // }
 
     private static void FlatShading(Vector3[] vertices, int[] triangles, Vector2[] uvs, Mesh mesh)
     {
