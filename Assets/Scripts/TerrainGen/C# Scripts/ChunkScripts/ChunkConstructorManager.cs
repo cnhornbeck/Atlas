@@ -1,114 +1,101 @@
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.Mathematics;
 
 public class ChunkConstructorManager
 {
-    private static List<ChunkConstructor> noiseJobs = new();
-    private static List<ChunkConstructor> textureJobs = new();
-    private static List<ChunkConstructor> finishedChunkConstructors = new();
-    public static Transform parentTransform;
+    // TODO: Maybe make these arrays with a reasonable size. Somehow get the users cpu specs and adjust the size accordingly.
+    private static readonly List<ChunkConstructor> NoiseJobs = new();
+    private static readonly List<ChunkConstructor> TextureJobs = new();
+    private static readonly List<ChunkConstructor> FinishedConstructors = new();
 
-    public static void QueueChunkGeneration(Vector2 position)
+    public static Transform ParentTransform { get; set; }
+
+    public static void QueueChunkGeneration(float2 position)
     {
-        string chunkName = "Terrain Chunk: (" + (int)position.x / ChunkGlobals.worldSpaceChunkSize + ", " + (int)position.y / ChunkGlobals.worldSpaceChunkSize + ")";
-        GameObject terrainChunk = new(chunkName);
-        terrainChunk.transform.parent = parentTransform;
+        int chunkX = (int)(position.x / ChunkGlobals.WorldSpaceChunkSize);
+        int chunkY = (int)(position.y / ChunkGlobals.WorldSpaceChunkSize);
+        string chunkName = $"Terrain Chunk: ({chunkX}, {chunkY})";
+
+        GameObject terrainChunk = new(chunkName)
+        {
+            transform = { parent = ParentTransform }
+        };
 
         Chunk chunkComponent = terrainChunk.AddComponent<Chunk>();
         chunkComponent.SetParent(terrainChunk);
-        StartChunkGeneration(position);
-
         ChunkRegistry.GetGeneratedChunksDictionary().Add(position, chunkComponent);
+
+        StartNoiseJob(position);
     }
 
-
-    /// <summary>
-    /// Initiates the chunk generation process for a given position.
-    /// </summary>
-    /// <param name="position">The position of the chunk to generate.</param>
-    private static void StartChunkGeneration(Vector2 position)
+    private static void StartNoiseJob(float2 position)
     {
-        var newChunkConstructor = new ChunkConstructor();
-        newChunkConstructor.StartNoiseJob(position);
-        noiseJobs.Add(newChunkConstructor);
+        var chunkConstructor = new ChunkConstructor();
+        chunkConstructor.StartNoiseJob(position);
+        NoiseJobs.Add(chunkConstructor);
     }
 
-    /// <summary>
-    /// Processes completed noise jobs and starts texture generation for them.
-    /// </summary>
-    private static void StartMeshAndTextureGeneration()
+    public static void HandleChunkGeneration()
     {
-        var finishedNoiseJobs = new List<ChunkConstructor>();
+        ProcessNoiseJobs();
+        ProcessTextureJobs();
+        InitializeFinishedChunks();
+    }
 
-        foreach (var job in noiseJobs)
+    private static void ProcessNoiseJobs()
+    {
+        var completedNoiseJobs = new List<ChunkConstructor>();
+
+        foreach (var job in NoiseJobs)
         {
             if (job.IsNoiseJobComplete())
             {
                 job.CompleteNoiseJob();
-
                 job.StartTextureJob();
-                textureJobs.Add(job);
-
-                // job.StartMeshJob();
-                // meshJobs.Add(job);
-
-                finishedNoiseJobs.Add(job);
+                TextureJobs.Add(job);
+                completedNoiseJobs.Add(job);
             }
         }
 
-        // Remove completed noise jobs
-        foreach (var finishedJob in finishedNoiseJobs)
+        foreach (var job in completedNoiseJobs)
         {
-            noiseJobs.Remove(finishedJob);
+            NoiseJobs.Remove(job);
         }
     }
 
-    /// <summary>
-    /// Retrieves and processes finished chunks.
-    /// </summary>
-    /// <returns>A list of finished chunk constructors.</returns>
-    private static List<ChunkConstructor> GetFinishedChunks()
+    private static void ProcessTextureJobs()
     {
-        var finishedChunks = new List<ChunkConstructor>();
-        var finishedTextureJobs = new List<ChunkConstructor>();
-        int completedJobs = 0;
+        var completedTextureJobs = new List<ChunkConstructor>();
 
-        foreach (var job in textureJobs)
+        foreach (var job in TextureJobs)
         {
             if (job.IsTextureJobComplete())
             {
                 job.CompleteTextureJob();
                 job.CreateMesh();
-                finishedTextureJobs.Add(job);
-                finishedChunks.Add(job);
-                completedJobs++;
+                FinishedConstructors.Add(job);
+                completedTextureJobs.Add(job);
             }
         }
 
-        // Remove completed texture jobs
-        foreach (var finishedJob in finishedTextureJobs)
+        foreach (var job in completedTextureJobs)
         {
-            textureJobs.Remove(finishedJob);
+            TextureJobs.Remove(job);
         }
-
-        return finishedChunks;
     }
 
-    public static void HandleChunkGeneration(){
-        StartMeshAndTextureGeneration();
-        HandleFinishedChunks();
-    }
-
-    private static void HandleFinishedChunks()
+    private static void InitializeFinishedChunks()
     {
-        finishedChunkConstructors = GetFinishedChunks();
-        foreach (ChunkConstructor chunkConstructor in finishedChunkConstructors)
+        foreach (var constructor in FinishedConstructors)
         {
-            Vector2 chunkPosition = chunkConstructor.GetWorldSpacePosition();
-            Chunk chunk = ChunkRegistry.GetGeneratedChunksDictionary()[chunkPosition];
-            chunk.Initialize(chunkConstructor.GetMeshes(), chunkConstructor.GetTexture(), chunkPosition);
-            // chunksVisibleLastFrame.Add(chunkPosition);
+            float2 position = constructor.GetWorldSpacePosition();
+            if (ChunkRegistry.GetGeneratedChunksDictionary().TryGetValue(position, out var chunk))
+            {
+                chunk.Initialize(constructor.GetMeshes(), constructor.GetTexture(), position);
+            }
         }
-        finishedChunkConstructors.Clear();
+
+        FinishedConstructors.Clear();
     }
 }

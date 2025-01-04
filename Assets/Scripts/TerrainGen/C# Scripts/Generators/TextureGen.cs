@@ -3,11 +3,12 @@ using UnityEngine;
 using Unity.Jobs;
 using Unity.Burst;
 using Unity.Collections;
+using Unity.Mathematics;
 
-[BurstCompile]
+[BurstCompile(FloatPrecision.Standard, FloatMode.Fast, CompileSynchronously = true)]
 public struct TextureGenJob : IJobParallelFor
 {
-    [ReadOnly] public NativeArray<Vector3> vertexArray;
+    [ReadOnly] public NativeArray<float3> vertexArray;
     [ReadOnly] public NativeArray<Color> lookupTable;
     [ReadOnly] public int textureSize;
     [ReadOnly] public float numberOfColors;
@@ -57,7 +58,7 @@ public struct TextureGenJob : IJobParallelFor
 
 public struct TextureGen
 {
-    public static JobData<Color> ScheduleTextureGenJob(NativeArray<Vector3> vertexArray)
+    public static JobData<Color> ScheduleTextureGenJob(NativeArray<float3> vertexArray)
     {
         int textureSize = ChunkGlobals.meshSpaceChunkSize;
 
@@ -72,7 +73,7 @@ public struct TextureGen
             numberOfColors = TexturePreCompute.numberOfColors
         };
 
-        int innerLoopBatchSize = Unity.Mathematics.math.min(64, textureSize * textureSize);
+        int innerLoopBatchSize = math.min(64, textureSize * textureSize);
 
         JobHandle JobHandle = job.Schedule(colorData.Length, innerLoopBatchSize);
         return new JobData<Color>(JobHandle, colorData);

@@ -1,18 +1,18 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Unity.Mathematics;
 
 public class ChunkVisibilityManager : MonoBehaviour
 {
-    static HashSet<Vector2> chunksVisibleLastFrame = new();
+    static HashSet<float2> chunksVisibleLastFrame = new();
 
-    public static void UpdateChunkVisibility(Vector3 cameraPos)
+    public static void UpdateChunkVisibility(float3 cameraPos)
     {
-        // TODO: This can be smaller type, such as byte
-        int renderDistance = ChunkGlobals.renderDistance;
+        byte renderDistance = ChunkGlobals.renderDistance;
 
-        HashSet<Vector2> visibleChunkPositions = GetVisibleChunkPositionsWithinRadius(cameraPos, renderDistance);
+        HashSet<float2> visibleChunkPositions = GetVisibleChunkPositionsWithinRadius(cameraPos, renderDistance);
         // Loops over the position of each chunk that should be visible
-        foreach (Vector2 position in visibleChunkPositions)
+        foreach (float2 position in visibleChunkPositions)
         {
             // Checks if a chunk has been generated at position
             if (ChunkRegistry.GetGeneratedChunksDictionary().TryGetValue(position, out Chunk chunk))
@@ -26,16 +26,14 @@ public class ChunkVisibilityManager : MonoBehaviour
             }
             else
             {
-                // TODO: This functionality should be moved elsewhere. This class should not be responsible for generating chunks
-
+                // TODO: Convey LOD level to ChunkConstructorManager so that it can generate the correct LOD level as needed
                 ChunkConstructorManager.QueueChunkGeneration(position);
-                // ChunkRegistry.generatedChunks.Add(position, newChunk);
             }
         }
         // This gets all chunks that are in chunksVisibleLastFrame that are not in visibleChunkPositions and stores that value in chunksVisibleLastFrame
         chunksVisibleLastFrame.ExceptWith(visibleChunkPositions);
         // Goes through every position in chunksVisibleLastFrame, which now contains only chunks that were visible last frame that should NOT be visible this frame, and disables every chunk at each position
-        foreach (Vector2 position in chunksVisibleLastFrame)
+        foreach (float2 position in chunksVisibleLastFrame)
         {
             ChunkRegistry.GetGeneratedChunksDictionary()[position].SetVisible(false);
         }
@@ -43,14 +41,14 @@ public class ChunkVisibilityManager : MonoBehaviour
         chunksVisibleLastFrame = visibleChunkPositions;
     }
 
-    private static HashSet<Vector2> GetVisibleChunkPositionsWithinRadius(Vector3 currentPositionVec3, int renderDistance)
+    private static HashSet<float2> GetVisibleChunkPositionsWithinRadius(float3 currentPositionVec3, byte renderDistance)
     {
-        int estimatedCapacity = (int)(Mathf.PI * renderDistance * renderDistance);
-        HashSet<Vector2> visibleChunkPositionsWithinRadius = new HashSet<Vector2>(estimatedCapacity);
+        ushort estimatedCapacity = (ushort)(Mathf.PI * renderDistance * renderDistance);
+        HashSet<float2> visibleChunkPositionsWithinRadius = new HashSet<float2>(estimatedCapacity);
 
         // Get current chunk position in "chunk space"
-        int currentChunkX = Mathf.RoundToInt(currentPositionVec3.x / ChunkGlobals.worldSpaceChunkSize);
-        int currentChunkZ = Mathf.RoundToInt(currentPositionVec3.z / ChunkGlobals.worldSpaceChunkSize);
+        int currentChunkX = Mathf.RoundToInt(currentPositionVec3.x / ChunkGlobals.WorldSpaceChunkSize);
+        int currentChunkZ = Mathf.RoundToInt(currentPositionVec3.z / ChunkGlobals.WorldSpaceChunkSize);
 
         float squaredRenderDistance = renderDistance * renderDistance;
 
@@ -69,10 +67,10 @@ public class ChunkVisibilityManager : MonoBehaviour
                     int chunkZ = currentChunkZ + zOffset;
 
                     // Convert back to world space
-                    float xCoord = chunkX * ChunkGlobals.worldSpaceChunkSize;
-                    float zCoord = chunkZ * ChunkGlobals.worldSpaceChunkSize;
+                    float xCoord = chunkX * ChunkGlobals.WorldSpaceChunkSize;
+                    float zCoord = chunkZ * ChunkGlobals.WorldSpaceChunkSize;
 
-                    visibleChunkPositionsWithinRadius.Add(new Vector2(xCoord, zCoord));
+                    visibleChunkPositionsWithinRadius.Add(new float2(xCoord, zCoord));
                 }
             }
         }

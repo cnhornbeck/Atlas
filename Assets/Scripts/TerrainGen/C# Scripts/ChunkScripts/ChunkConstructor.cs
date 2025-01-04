@@ -1,16 +1,17 @@
 using UnityEngine;
 using Unity.Collections;
+using Unity.Mathematics;
 
 public class ChunkConstructor
 {
-    private JobData<Vector3> noiseJobData;
+    private JobData<float3> noiseJobData;
     private JobData<Color> textureJobData;
-    private NativeArray<Vector3> vertices;
+    private NativeArray<float3> vertices;
     private Texture2D texture;
     private Mesh[] meshes;
-    private Vector2 worldSpacePosition;
+    private float2 worldSpacePosition;
 
-    public void StartNoiseJob(Vector2 position)
+    public void StartNoiseJob(float2 position)
     {
         DisposeNoiseJobData(); // Ensure any previous noise job data is disposed of
         worldSpacePosition = position;
@@ -40,7 +41,7 @@ public class ChunkConstructor
         vertices.Dispose(); // Dispose of vertices as they are no longer needed
     }
 
-    public NativeArray<Vector3> GetVertices() => vertices;
+    public NativeArray<float3> GetVertices() => vertices;
 
     public Texture2D GetTexture() => texture;
 
@@ -50,7 +51,7 @@ public class ChunkConstructor
 
     public bool IsTextureJobComplete() => textureJobData.JobHandle.IsCompleted;
 
-    public Vector2 GetWorldSpacePosition() => worldSpacePosition;
+    public float2 GetWorldSpacePosition() => worldSpacePosition;
 
     private void DisposeNoiseJobData()
     {

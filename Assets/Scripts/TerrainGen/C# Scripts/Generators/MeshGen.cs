@@ -16,7 +16,7 @@ public class MeshGen
     /// </summary>
     /// <param name="vertexArray">The vertex data for the mesh.</param>
     /// <returns>An array of meshes with different LODs.</returns>
-    public static Mesh[] GenerateMeshes(NativeArray<Vector3> vertexArray)
+    public static Mesh[] GenerateMeshes(NativeArray<float3> vertexArray)
     {
         int totalLodCount = CalculateTotalLODCount();
         Mesh[] meshes = new Mesh[totalLodCount];
@@ -35,10 +35,10 @@ public class MeshGen
     /// <param name="vertices">The vertex data for the mesh.</param>
     /// <param name="lodLevel">The level of detail to generate.</param>
     /// <returns>A generated mesh for the specified LOD.</returns>
-    public static Mesh GenerateSingleMesh(Vector3[] vertices, int lodLevel)
+    public static Mesh GenerateSingleMesh(float3[] vertices, int lodLevel)
     {
         int[] triangles = ChunkGlobals.triangleArrays[lodLevel];
-        Vector2[] uvs = ChunkGlobals.uvArrays[0];
+        float2[] uvs = ChunkGlobals.uvArrays[0];
 
 
         #region 
@@ -67,7 +67,7 @@ public class MeshGen
             positions[i] = vertices[i];
         }
 
-        NativeArray<Vector2> texCoords = meshData.GetVertexData<Vector2>(1);
+        NativeArray<float2> texCoords = meshData.GetVertexData<float2>(1);
         for (int i = 0; i < vertexCount; i++)
         {
             texCoords[i] = uvs[i];
@@ -116,7 +116,7 @@ public class MeshGen
         return 1;
     }
 
-    // private static void GenerateHighResolutionLODs(Mesh[] meshes, NativeArray<Vector3> vertexArray)
+    // private static void GenerateHighResolutionLODs(Mesh[] meshes, NativeArray<float3> vertexArray)
     // {
     //     int highestLodCount = Math.Min(3, ChunkGlobals.lodCount);
     //     for (int i = 0; i < highestLodCount; i++)
@@ -126,7 +126,7 @@ public class MeshGen
     //     }
     // }
 
-    // private static void GenerateLowResolutionLOD(Mesh[] meshes, NativeArray<Vector3> vertexArray)
+    // private static void GenerateLowResolutionLOD(Mesh[] meshes, NativeArray<float3> vertexArray)
     // {
     //     if (ChunkGlobals.lodCount > 3)
     //     {
@@ -134,19 +134,19 @@ public class MeshGen
     //     }
     // }
 
-    private static void FlatShading(Vector3[] vertices, int[] triangles, Vector2[] uvs, Mesh mesh)
-    {
-        Vector3[] newVertices = new Vector3[triangles.Length];
-        Vector2[] newUVs = new Vector2[triangles.Length];
-        for (int i = 0; i < triangles.Length; i++)
-        {
-            newVertices[i] = vertices[triangles[i]];
-            newUVs[i] = uvs[triangles[i]];
-            triangles[i] = i;
-        }
-        mesh.vertices = newVertices;
-        mesh.uv = newUVs;
-        mesh.triangles = triangles;
-        mesh.RecalculateNormals();
-    }
+    // private static void FlatShading(float3[] vertices, int[] triangles, float2[] uvs, Mesh mesh)
+    // {
+    //     float3[] newVertices = new float3[triangles.Length];
+    //     float2[] newUVs = new float2[triangles.Length];
+    //     for (int i = 0; i < triangles.Length; i++)
+    //     {
+    //         newVertices[i] = vertices[triangles[i]];
+    //         newUVs[i] = uvs[triangles[i]];
+    //         triangles[i] = i;
+    //     }
+    //     mesh.vertices = newVertices;
+    //     mesh.uv = newUVs;
+    //     mesh.triangles = triangles;
+    //     mesh.RecalculateNormals();
+    // }
 }

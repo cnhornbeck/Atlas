@@ -1,7 +1,6 @@
-using System;
-using UnityEngine;
+using Unity.Mathematics;
 
-public class ChunkGlobals : MonoBehaviour
+public struct ChunkGlobals
 {
     public const int lodCount = 1;
 
@@ -9,9 +8,9 @@ public class ChunkGlobals : MonoBehaviour
     public static readonly int meshSpaceChunkSize = 64;
 
     // Size of the actual mesh in the scene
-    public const float worldSpaceChunkSize = 10;
+    public const float WorldSpaceChunkSize = 10;
     public const int heightMultiplier = 35;
-    public static int renderDistance = 10;
+    public static byte renderDistance = 10;
     public static int[][] triangleArrays;
-    public static Vector2[][] uvArrays;
+    public static float2[][] uvArrays;
 }

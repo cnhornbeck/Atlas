@@ -1,4 +1,5 @@
 using UnityEngine;
+using Unity.Mathematics;
 
 // A chunk is a single unit of terrain in the world.
 [RequireComponent(typeof(MeshFilter))]
@@ -6,17 +7,17 @@ using UnityEngine;
 // [RequireComponent(typeof(LODManager))]
 public class Chunk : MonoBehaviour
 {
-    public Vector2 WorldSpacePosition { get; private set; }
-    public Vector3 WorldSpaceChunkCenter { get; private set; }
+    public float2 WorldSpacePosition { get; private set; }
+    public float3 WorldSpaceChunkCenter { get; private set; }
     private GameObject parent;
 
     // Initialize the chunk with its basic properties and generate its initial content.
-    public void Initialize(Mesh[] meshes, Texture2D texture, Vector2 worldSpacePosition)
+    public void Initialize(Mesh[] meshes, Texture2D texture, float2 worldSpacePosition)
     {
         WorldSpacePosition = worldSpacePosition;
 
         // Set the parent's position based on the world space position.
-        Vector3 worldPosition = new(worldSpacePosition.x, 0, worldSpacePosition.y);
+        float3 worldPosition = new(worldSpacePosition.x, 0, worldSpacePosition.y);
         parent.transform.position = worldPosition;
 
         SetVisible(false);
@@ -71,9 +72,9 @@ public struct ChunkData
 {
     public Mesh[] meshes;
     public Texture2D texture;
-    public Vector3 worldSpaceChunkCenter;
+    public float3 worldSpaceChunkCenter;
 
-    public ChunkData(Vector3 worldSpaceChunkCenter, Mesh[] meshes, Texture2D texture)
+    public ChunkData(float3 worldSpaceChunkCenter, Mesh[] meshes, Texture2D texture)
     {
         this.worldSpaceChunkCenter = worldSpaceChunkCenter;
         this.meshes = meshes;
