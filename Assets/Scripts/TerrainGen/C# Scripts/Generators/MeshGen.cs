@@ -1,8 +1,10 @@
 using UnityEngine;
-using System;
-using System.Collections.Generic;
 using Unity.Collections;
 using UnityEngine.Rendering;
+using Unity.Mathematics;
+
+// TODO - Implement MeshGenJob
+// TODO - Implement Seamless LODs
 
 /// <summary>
 /// Handles mesh generation for terrain chunks with multiple levels of detail (LOD).
@@ -38,31 +40,73 @@ public class MeshGen
         int[] triangles = ChunkGlobals.triangleArrays[lodLevel];
         Vector2[] uvs = ChunkGlobals.uvArrays[0];
 
+
+        #region 
+        int vertexAttributeCount = 2;
+        int vertexCount = vertices.Length;
+        int triangleIndexCount = triangles.Length;
+
+        Mesh.MeshDataArray meshDataArray = Mesh.AllocateWritableMeshData(1);
+        Mesh.MeshData meshData = meshDataArray[0];
+
+        var vertexAttributes = new NativeArray<VertexAttributeDescriptor>(
+            vertexAttributeCount, Allocator.Temp, NativeArrayOptions.UninitializedMemory
+        );
+
+        vertexAttributes[0] = new VertexAttributeDescriptor(dimension: 3);
+        vertexAttributes[1] = new VertexAttributeDescriptor(
+            VertexAttribute.TexCoord0, VertexAttributeFormat.Float32, 2, 1
+        );
+
+        meshData.SetVertexBufferParams(vertexCount, vertexAttributes);
+        vertexAttributes.Dispose();
+
+        NativeArray<float3> positions = meshData.GetVertexData<float3>();
+        for (int i = 0; i < vertexCount; i++)
+        {
+            positions[i] = vertices[i];
+        }
+
+        NativeArray<Vector2> texCoords = meshData.GetVertexData<Vector2>(1);
+        for (int i = 0; i < vertexCount; i++)
+        {
+            texCoords[i] = uvs[i];
+        }
+
+        meshData.SetIndexBufferParams(triangleIndexCount, IndexFormat.UInt16);
+        NativeArray<ushort> triangleIndices = meshData.GetIndexData<ushort>();
+        for (int i = 0; i < triangleIndexCount; i++)
+        {
+            triangleIndices[i] = (ushort)triangles[i];
+        }
+
+        var bounds = new Bounds();
+        // Debug.Log($"Bounds: {bounds}");
+
+        meshData.subMeshCount = 1;
+        meshData.SetSubMesh(0, new SubMeshDescriptor(0, triangleIndexCount)
+        {
+            bounds = bounds,
+            vertexCount = vertexCount
+        });
+
         Mesh terrainMesh = new Mesh
         {
             name = $"TerrainMesh_LOD{lodLevel}",
+            bounds = bounds,
             indexFormat = IndexFormat.UInt32
         };
 
+        Mesh.ApplyAndDisposeWritableMeshData(meshDataArray, terrainMesh);
+        // TODO: Implement Better Recalculate Bounds Method
+        terrainMesh.RecalculateBounds();
+        #endregion
+
+
         // terrainMesh.vertices = vertices;
-
-        var layout = new[]
-        {
-            new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3),
-        };
-        terrainMesh.SetVertexBufferParams(vertices.Length, layout);
-        terrainMesh.SetVertexBufferData(vertices, 0, 0, vertices.Length);
-
-        terrainMesh.SetIndexBufferParams(triangles.Length, IndexFormat.UInt32);
-        terrainMesh.SetIndexBufferData(triangles, 0, 0, triangles.Length);
-
-        terrainMesh.subMeshCount = 1;
-        terrainMesh.SetSubMesh(0, new SubMeshDescriptor(0, triangles.Length));
-
-
         // terrainMesh.triangles = triangles;
         // terrainMesh.RecalculateNormals();
-        terrainMesh.uv = uvs;
+        // terrainMesh.uv = uvs;
 
         return terrainMesh;
     }

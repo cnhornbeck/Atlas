@@ -3,14 +3,14 @@ using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
 using Unity.Burst;
-public class NoiseSettings
+public struct NoiseSettings
 {
     // Ratio between world space and mesh space
-    public float Scale = 0.005f;
-    public float Lacunarity = 2.5f;
-    public float Persistence = 0.3f;
-    public int Octaves = 5;
-    public int Seed = 1327;
+    public float Scale => 0.005f;
+    public float Lacunarity => 2.5f;
+    public float Persistence => 0.3f;
+    public int Octaves => 5;
+    public int Seed => 1327;
 }
 
 [BurstCompile]
@@ -71,7 +71,7 @@ public struct NoiseGenJob : IJobParallelFor
     }
 }
 
-public class NoiseGen
+public struct NoiseGen
 {
     public static JobData<Vector3> ScheduleNoiseGenJob(Vector2 worldSpacePosition)
     {

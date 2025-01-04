@@ -10,7 +10,7 @@ public class ChunkGlobals : MonoBehaviour
 
     // Size of the actual mesh in the scene
     public const float worldSpaceChunkSize = 10;
-    public const int heightMultiplier = 50;
+    public const int heightMultiplier = 35;
     public static int renderDistance = 10;
     public static int[][] triangleArrays;
     public static Vector2[][] uvArrays;

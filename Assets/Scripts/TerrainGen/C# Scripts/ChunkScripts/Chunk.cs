@@ -19,7 +19,7 @@ public class Chunk : MonoBehaviour
         Vector3 worldPosition = new(worldSpacePosition.x, 0, worldSpacePosition.y);
         parent.transform.position = worldPosition;
 
-        SetVisible(true);
+        SetVisible(false);
 
         MeshFilter meshFilter = GetComponent<MeshFilter>();
         MeshRenderer meshRenderer = GetComponent<MeshRenderer>();

@@ -3,7 +3,6 @@ using UnityEngine;
 using Unity.Jobs;
 using Unity.Burst;
 using Unity.Collections;
-using Unity.Collections.LowLevel.Unsafe;
 
 [BurstCompile]
 public struct TextureGenJob : IJobParallelFor
@@ -27,14 +26,14 @@ public struct TextureGenJob : IJobParallelFor
         int topRight = topLeft + 1;
 
         // Ensure the indices are within the bounds of the vertexArray
-        if (bottomLeft < 0 || bottomLeft >= vertexArray.Length ||
-            bottomRight < 0 || bottomRight >= vertexArray.Length ||
-            topLeft < 0 || topLeft >= vertexArray.Length ||
-            topRight < 0 || topRight >= vertexArray.Length)
-        {
-            Debug.LogError($"Index out of bounds: index = {index}, bottomLeft = {bottomLeft}, bottomRight = {bottomRight}, topLeft = {topLeft}, topRight = {topRight}, textureSize = {textureSize}");
-            return; // Skip processing for this index
-        }
+        // if (bottomLeft < 0 || bottomLeft >= vertexArray.Length ||
+        //     bottomRight < 0 || bottomRight >= vertexArray.Length ||
+        //     topLeft < 0 || topLeft >= vertexArray.Length ||
+        //     topRight < 0 || topRight >= vertexArray.Length)
+        // {
+        //     Debug.LogError($"Index out of bounds: index = {index}, bottomLeft = {bottomLeft}, bottomRight = {bottomRight}, topLeft = {topLeft}, topRight = {topRight}, textureSize = {textureSize}");
+        //     return; // Skip processing for this index
+        // }
 
         float summedHeight =
             vertexArray[bottomLeft].y +
@@ -46,17 +45,17 @@ public struct TextureGenJob : IJobParallelFor
         int colorIndex = (int)(smoothedHeight * numberOfColors);
 
         // Ensure the colorIndex is within the bounds of the lookupTable
-        if (colorIndex < 0 || colorIndex >= lookupTable.Length)
-        {
-            Debug.LogError($"Color index out of bounds: colorIndex = {colorIndex}, numberOfColors = {numberOfColors}, smoothedHeight = {smoothedHeight}");
-            return; // Skip processing for this index
-        }
+        // if (colorIndex < 0 || colorIndex >= lookupTable.Length)
+        // {
+        //     Debug.LogError($"Color index out of bounds: colorIndex = {colorIndex}, numberOfColors = {numberOfColors}, smoothedHeight = {smoothedHeight}");
+        //     return; // Skip processing for this index
+        // }
 
         colorData[index] = lookupTable[colorIndex];
     }
 }
 
-public class TextureGen
+public struct TextureGen
 {
     public static JobData<Color> ScheduleTextureGenJob(NativeArray<Vector3> vertexArray)
     {
@@ -90,20 +89,7 @@ public class TextureGen
             wrapMode = TextureWrapMode.Clamp // Prevents texture from tiling
         };
 
-        unsafe
-        {
-            // Get pointers for source and destination
-            void* srcPtr = NativeArrayUnsafeUtility.GetUnsafePtr(jobData.Data);
-            Color[] colorArray = new Color[jobData.Data.Length];
-            fixed (Color* dstPtr = colorArray)
-            {
-                // Copy memory
-                UnsafeUtility.MemCpy(dstPtr, srcPtr, jobData.Data.Length * UnsafeUtility.SizeOf<Color>());
-            }
-
-            // Set pixels with the copied array
-            textureData.SetPixels(colorArray);
-        }
+        textureData.SetPixels(jobData.Data.ToArray());
 
         textureData.Apply();
 

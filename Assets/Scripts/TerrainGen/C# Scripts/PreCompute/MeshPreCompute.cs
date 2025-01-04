@@ -16,7 +16,7 @@ public class MeshPreCompute : MonoBehaviour
         {
             triangleArrays[i] = GenerateLODTriangleArray(ChunkGlobals.meshSpaceChunkSize + 1, i);
         }
-    
+
         return triangleArrays;
     }
 
@@ -98,8 +98,8 @@ public class MeshPreCompute : MonoBehaviour
             }
         }
 
-        print(triangles.Length);
-        
+        // print(triangles.Length);
+
         return triangles;
     }
 

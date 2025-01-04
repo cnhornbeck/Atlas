@@ -1,18 +1,32 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-
-public class ChunkConstructorManager : MonoBehaviour
+public class ChunkConstructorManager
 {
     private static List<ChunkConstructor> noiseJobs = new();
     private static List<ChunkConstructor> textureJobs = new();
-    private const int MaxJobsPerFrame = 5;
+    private static List<ChunkConstructor> finishedChunkConstructors = new();
+    public static Transform parentTransform;
+
+    public static void QueueChunkGeneration(Vector2 position)
+    {
+        string chunkName = "Terrain Chunk: (" + (int)position.x / ChunkGlobals.worldSpaceChunkSize + ", " + (int)position.y / ChunkGlobals.worldSpaceChunkSize + ")";
+        GameObject terrainChunk = new(chunkName);
+        terrainChunk.transform.parent = parentTransform;
+
+        Chunk chunkComponent = terrainChunk.AddComponent<Chunk>();
+        chunkComponent.SetParent(terrainChunk);
+        StartChunkGeneration(position);
+
+        ChunkRegistry.GetGeneratedChunksDictionary().Add(position, chunkComponent);
+    }
+
 
     /// <summary>
     /// Initiates the chunk generation process for a given position.
     /// </summary>
     /// <param name="position">The position of the chunk to generate.</param>
-    public static void StartChunkGeneration(Vector2 position)
+    private static void StartChunkGeneration(Vector2 position)
     {
         var newChunkConstructor = new ChunkConstructor();
         newChunkConstructor.StartNoiseJob(position);
@@ -22,7 +36,7 @@ public class ChunkConstructorManager : MonoBehaviour
     /// <summary>
     /// Processes completed noise jobs and starts texture generation for them.
     /// </summary>
-    public static void StartTextureGeneration()
+    private static void StartMeshAndTextureGeneration()
     {
         var finishedNoiseJobs = new List<ChunkConstructor>();
 
@@ -31,9 +45,14 @@ public class ChunkConstructorManager : MonoBehaviour
             if (job.IsNoiseJobComplete())
             {
                 job.CompleteNoiseJob();
+
                 job.StartTextureJob();
-                finishedNoiseJobs.Add(job);
                 textureJobs.Add(job);
+
+                // job.StartMeshJob();
+                // meshJobs.Add(job);
+
+                finishedNoiseJobs.Add(job);
             }
         }
 
@@ -45,10 +64,10 @@ public class ChunkConstructorManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Retrieves and processes finished chunks, limited by MaxJobsPerFrame.
+    /// Retrieves and processes finished chunks.
     /// </summary>
     /// <returns>A list of finished chunk constructors.</returns>
-    public static List<ChunkConstructor> GetFinishedChunks()
+    private static List<ChunkConstructor> GetFinishedChunks()
     {
         var finishedChunks = new List<ChunkConstructor>();
         var finishedTextureJobs = new List<ChunkConstructor>();
@@ -56,7 +75,7 @@ public class ChunkConstructorManager : MonoBehaviour
 
         foreach (var job in textureJobs)
         {
-            if (job.IsTextureJobComplete() && completedJobs < MaxJobsPerFrame)
+            if (job.IsTextureJobComplete())
             {
                 job.CompleteTextureJob();
                 job.CreateMesh();
@@ -73,5 +92,23 @@ public class ChunkConstructorManager : MonoBehaviour
         }
 
         return finishedChunks;
+    }
+
+    public static void HandleChunkGeneration(){
+        StartMeshAndTextureGeneration();
+        HandleFinishedChunks();
+    }
+
+    private static void HandleFinishedChunks()
+    {
+        finishedChunkConstructors = GetFinishedChunks();
+        foreach (ChunkConstructor chunkConstructor in finishedChunkConstructors)
+        {
+            Vector2 chunkPosition = chunkConstructor.GetWorldSpacePosition();
+            Chunk chunk = ChunkRegistry.GetGeneratedChunksDictionary()[chunkPosition];
+            chunk.Initialize(chunkConstructor.GetMeshes(), chunkConstructor.GetTexture(), chunkPosition);
+            // chunksVisibleLastFrame.Add(chunkPosition);
+        }
+        finishedChunkConstructors.Clear();
     }
 }

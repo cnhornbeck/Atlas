@@ -1,6 +1,5 @@
 using UnityEngine;
 using Unity.Collections;
-using System;
 
 public class ChunkConstructor
 {
@@ -26,12 +25,6 @@ public class ChunkConstructor
 
     public void StartTextureJob()
     {
-        // Ensure the noise job is complete before starting the texture job
-        if (!noiseJobData.JobHandle.IsCompleted)
-        {
-            throw new InvalidOperationException("Noise job must be completed before starting the texture job.");
-        }
-
         CompleteNoiseJob(); // Ensure vertices are populated before starting the texture job
         textureJobData = TextureGen.ScheduleTextureGenJob(vertices);
     }
@@ -43,12 +36,6 @@ public class ChunkConstructor
 
     public void CreateMesh()
     {
-        // Ensure the noise job is complete before creating the mesh
-        if (!noiseJobData.JobHandle.IsCompleted)
-        {
-            throw new InvalidOperationException("Noise job must be completed before creating the mesh.");
-        }
-
         meshes = MeshGen.GenerateMeshes(vertices);
         vertices.Dispose(); // Dispose of vertices as they are no longer needed
     }
