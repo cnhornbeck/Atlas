@@ -6,7 +6,7 @@ using Unity.Burst;
 public struct NoiseSettings
 {
     // Ratio between world space and mesh space
-    public float Scale => 0.005f;
+    public float Scale => 0.0005f;
     public float Lacunarity => 2.5f;
     public float Persistence => 0.3f;
     public int Octaves => 5;

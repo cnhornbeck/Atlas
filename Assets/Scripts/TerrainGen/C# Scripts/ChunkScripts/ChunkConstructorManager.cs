@@ -7,6 +7,7 @@ public class ChunkConstructorManager
     // TODO: Maybe make these arrays with a reasonable size. Somehow get the users cpu specs and adjust the size accordingly.
     private static readonly List<ChunkConstructor> NoiseJobs = new();
     private static readonly List<ChunkConstructor> TextureJobs = new();
+    // private static readonly List<ChunkConstructor> MeshJobs = new();
     private static readonly List<ChunkConstructor> FinishedConstructors = new();
 
     public static Transform ParentTransform { get; set; }
@@ -40,6 +41,7 @@ public class ChunkConstructorManager
     {
         ProcessNoiseJobs();
         ProcessTextureJobs();
+        // ProcessMeshJobs();
         InitializeFinishedChunks();
     }
 
@@ -51,9 +53,10 @@ public class ChunkConstructorManager
         {
             if (job.IsNoiseJobComplete())
             {
-                job.CompleteNoiseJob();
                 job.StartTextureJob();
                 TextureJobs.Add(job);
+                // job.StartMeshJob();
+                // MeshJobs.Add(job);
                 completedNoiseJobs.Add(job);
             }
         }
@@ -84,6 +87,26 @@ public class ChunkConstructorManager
             TextureJobs.Remove(job);
         }
     }
+
+    // private static void ProcessMeshJobs()
+    // {
+    //     var completedMeshJobs = new List<ChunkConstructor>();
+
+    //     foreach (var job in MeshJobs)
+    //     {
+    //         if (job.IsMeshJobComplete())
+    //         {
+    //             // job.CompleteMeshJob();
+    //             FinishedConstructors.Add(job);
+    //             completedMeshJobs.Add(job);
+    //         }
+    //     }
+
+    //     foreach (var job in completedMeshJobs)
+    //     {
+    //         TextureJobs.Remove(job);
+    //     }
+    // }
 
     private static void InitializeFinishedChunks()
     {

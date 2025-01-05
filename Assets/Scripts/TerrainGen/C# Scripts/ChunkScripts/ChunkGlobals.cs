@@ -8,9 +8,9 @@ public struct ChunkGlobals
     public static readonly int meshSpaceChunkSize = 64;
 
     // Size of the actual mesh in the scene
-    public const float WorldSpaceChunkSize = 10;
-    public const int heightMultiplier = 35;
-    public static byte renderDistance = 10;
+    public const float WorldSpaceChunkSize = 1000;
+    public const int heightMultiplier = 700;
+    public static byte renderDistance = 20;
     public static int[][] triangleArrays;
     public static float2[][] uvArrays;
 }

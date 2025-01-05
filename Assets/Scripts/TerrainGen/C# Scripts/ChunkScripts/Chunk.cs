@@ -12,7 +12,7 @@ public class Chunk : MonoBehaviour
     private GameObject parent;
 
     // Initialize the chunk with its basic properties and generate its initial content.
-    public void Initialize(Mesh[] meshes, Texture2D texture, float2 worldSpacePosition)
+    public void Initialize(Mesh mesh, Texture2D texture, float2 worldSpacePosition)
     {
         WorldSpacePosition = worldSpacePosition;
 
@@ -26,7 +26,7 @@ public class Chunk : MonoBehaviour
         MeshRenderer meshRenderer = GetComponent<MeshRenderer>();
         // LODManager lodManager = GetComponent<LODManager>();
 
-        SetMesh(meshFilter, meshes[0]);
+        SetMesh(meshFilter, mesh);
         SetTexture(meshRenderer, texture);
         // lodManager.worldSpaceChunkCenter = worldPosition;
         // lodManager.meshes = meshes;

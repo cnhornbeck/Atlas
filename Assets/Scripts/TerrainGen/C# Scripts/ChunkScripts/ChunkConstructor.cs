@@ -6,9 +6,10 @@ public class ChunkConstructor
 {
     private JobData<float3> noiseJobData;
     private JobData<Color> textureJobData;
+    // private JobData<Mesh> meshJobData;
     private NativeArray<float3> vertices;
     private Texture2D texture;
-    private Mesh[] meshes;
+    private Mesh mesh;
     private float2 worldSpacePosition;
 
     public void StartNoiseJob(float2 position)
@@ -37,19 +38,28 @@ public class ChunkConstructor
 
     public void CreateMesh()
     {
-        meshes = MeshGen.GenerateMeshes(vertices);
+        mesh = MeshGen.GenerateMesh(vertices, 0);
         vertices.Dispose(); // Dispose of vertices as they are no longer needed
+    }
+
+    public void StartMeshJob()
+    {
+        // meshJobData = MeshGen.ScheduleMeshGenJob(vertices);
     }
 
     public NativeArray<float3> GetVertices() => vertices;
 
     public Texture2D GetTexture() => texture;
 
-    public Mesh[] GetMeshes() => meshes;
+    public Mesh GetMeshes() => mesh;
 
     public bool IsNoiseJobComplete() => noiseJobData.JobHandle.IsCompleted;
 
+    // Create a public bool with getter setter for if we are ready to start the texture job, because just because the noise job is complete doesn't mean we are ready to start the texture job
+    // public bool IsReadyToStartJob { get; set; } = false;
+
     public bool IsTextureJobComplete() => textureJobData.JobHandle.IsCompleted;
+    // public bool IsMeshJobComplete() => meshJobData.JobHandle.IsCompleted;
 
     public float2 GetWorldSpacePosition() => worldSpacePosition;
 
