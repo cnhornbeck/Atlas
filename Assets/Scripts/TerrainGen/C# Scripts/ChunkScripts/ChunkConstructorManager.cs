@@ -5,22 +5,21 @@ using Unity.Mathematics;
 public class ChunkConstructorManager
 {
     // TODO: Maybe make these arrays with a reasonable size. Somehow get the users cpu specs and adjust the size accordingly.
-    private static readonly int chunksInRenderDistance = Mathf.CeilToInt(ChunkGlobals.renderDistance * ChunkGlobals.renderDistance * math.PI);
     private static readonly List<ChunkConstructor> NoiseJobs = new();
     private static readonly List<ChunkConstructor> TextureJobs = new();
     private static readonly List<ChunkConstructor> FinishedConstructors = new();
-    private static FixedSizeDeque<ChunkConstructionData> ChunksToGenerate = new(chunksInRenderDistance);
+    private static FixedSizeDeque<ChunkConstructionData> ChunksToGenerate = new(ChunkGlobals.chunksInRenderDistance);
     private static int MaxMeshTextureJobs = 15;
     private static int MaxNoiseJobs = MaxMeshTextureJobs * 2;
-    private static HashSet<float2> chunksStartedThisFrame = new();
+    private static HashSet<int2> chunksStartedThisFrame = new();
     public static Transform ParentTransform { get; set; }
 
-    public static void AddChunkToQueue(float2 position)
+    public static void AddChunkToQueue(int2 chunkSpacePosition)
     {
-        ChunksToGenerate.AddFront(new ChunkConstructionData { position = position, lod = 0 });
+        ChunksToGenerate.AddFront(new ChunkConstructionData { chunkSpacePosition = chunkSpacePosition, lod = 0 });
     }
 
-    public static HashSet<float2> StartChunkConstructionJobs()
+    public static HashSet<int2> StartChunkConstructionJobs()
     {
 
         if (NoiseJobs.Count >= MaxNoiseJobs)
@@ -37,11 +36,8 @@ public class ChunkConstructorManager
             // Debug.Log("NoiseJobs Count: " + NoiseJobs.Count);
             // Debug.Log("Chunks To Generate Count: " + ChunksToGenerate.Count);
 
-            float2 position = chunkConstructionData.position;
-
-            int chunkX = (int)(position.x / ChunkGlobals.WorldSpaceChunkSize);
-            int chunkY = (int)(position.y / ChunkGlobals.WorldSpaceChunkSize);
-            string chunkName = $"Terrain Chunk: ({chunkX}, {chunkY})";
+            int2 chunkSpacePosition = chunkConstructionData.chunkSpacePosition;
+            string chunkName = $"Terrain Chunk: ({chunkSpacePosition.x}, {chunkSpacePosition.y})";
 
             GameObject terrainChunk = new(chunkName)
             {
@@ -50,22 +46,22 @@ public class ChunkConstructorManager
 
             Chunk chunkComponent = terrainChunk.AddComponent<Chunk>();
             chunkComponent.SetParent(terrainChunk);
-            ChunkRegistry.GetGeneratedChunksDictionary().Add(chunkConstructionData.position, chunkComponent);
+            ChunkRegistry.GetGeneratedChunksDictionary().Add(chunkConstructionData.chunkSpacePosition, chunkComponent);
 
             var chunkConstructor = new ChunkConstructor();
             chunkConstructor.StartNoiseJob(chunkConstructionData);
             NoiseJobs.Add(chunkConstructor);
 
-            chunksStartedThisFrame.Add(chunkConstructionData.position);
+            chunksStartedThisFrame.Add(chunkConstructionData.chunkSpacePosition);
             // count++;
         }
 
         return chunksStartedThisFrame;
     }
 
-    public static bool IsQueuedForConstruction(float2 position)
+    public static bool IsQueuedForConstruction(int2 chunkSpacePosition)
     {
-        if (ChunksToGenerate.Contains(new ChunkConstructionData { position = position, lod = 0 }))
+        if (ChunksToGenerate.Contains(new ChunkConstructionData { chunkSpacePosition = chunkSpacePosition, lod = 0 }))
         {
             return true;
         }
@@ -131,10 +127,10 @@ public class ChunkConstructorManager
     {
         foreach (var constructor in FinishedConstructors)
         {
-            float2 position = constructor.GetWorldSpacePosition();
-            if (ChunkRegistry.GetGeneratedChunksDictionary().TryGetValue(position, out var chunk))
+            int2 chunkSpacePosition = constructor.GetWorldSpacePosition() / ChunkGlobals.WorldSpaceChunkSize;
+            if (ChunkRegistry.GetGeneratedChunksDictionary().TryGetValue(chunkSpacePosition, out var chunk))
             {
-                chunk.Initialize(constructor.GetMeshes(), constructor.GetTexture(), position);
+                chunk.Initialize(constructor.GetMeshes(), constructor.GetTexture(), chunkSpacePosition);
             }
         }
 
@@ -144,6 +140,6 @@ public class ChunkConstructorManager
 
 public struct ChunkConstructionData
 {
-    public float2 position;
+    public int2 chunkSpacePosition;
     public int lod;
 }

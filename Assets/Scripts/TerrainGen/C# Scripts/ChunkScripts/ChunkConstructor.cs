@@ -10,13 +10,13 @@ public class ChunkConstructor
     private NativeArray<float3> vertices;
     private Texture2D texture;
     private Mesh mesh;
-    private float2 worldSpacePosition;
+    private int2 worldSpacePosition;
     private int lod;
 
     public void StartNoiseJob(ChunkConstructionData chunkConstructionData)
     {
         DisposeNoiseJobData(); // Ensure any previous noise job data is disposed of
-        worldSpacePosition = chunkConstructionData.position;
+        worldSpacePosition = chunkConstructionData.chunkSpacePosition * ChunkGlobals.WorldSpaceChunkSize;
         lod = chunkConstructionData.lod;
         noiseJobData = NoiseGen.ScheduleNoiseGenJob(worldSpacePosition);
     }
@@ -58,7 +58,7 @@ public class ChunkConstructor
     public bool IsTextureJobComplete() => textureJobData.JobHandle.IsCompleted;
     // public bool IsMeshJobComplete() => meshJobData.JobHandle.IsCompleted;
 
-    public float2 GetWorldSpacePosition() => worldSpacePosition;
+    public int2 GetWorldSpacePosition() => worldSpacePosition;
 
     private void DisposeNoiseJobData()
     {

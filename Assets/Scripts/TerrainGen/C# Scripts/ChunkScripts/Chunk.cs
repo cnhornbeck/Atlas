@@ -12,12 +12,12 @@ public class Chunk : MonoBehaviour
     private GameObject parent;
 
     // Initialize the chunk with its basic properties and generate its initial content.
-    public void Initialize(Mesh mesh, Texture2D texture, float2 worldSpacePosition)
+    public void Initialize(Mesh mesh, Texture2D texture, float2 chunkSpacePosition)
     {
-        WorldSpacePosition = worldSpacePosition;
+        WorldSpacePosition = chunkSpacePosition * ChunkGlobals.WorldSpaceChunkSize;
 
         // Set the parent's position based on the world space position.
-        float3 worldPosition = new(worldSpacePosition.x, 0, worldSpacePosition.y);
+        float3 worldPosition = new(WorldSpacePosition.x, 0, WorldSpacePosition.y);
         parent.transform.position = worldPosition;
 
         SetVisible(false);
