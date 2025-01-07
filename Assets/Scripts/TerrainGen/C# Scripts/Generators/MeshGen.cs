@@ -2,24 +2,8 @@ using UnityEngine;
 using Unity.Collections;
 using UnityEngine.Rendering;
 using Unity.Mathematics;
-using Unity.Jobs;
-using Unity.Burst;
 
-// TODO - Implement MeshGenJob
 // TODO - Implement Seamless LODs
-
-// [BurstCompile(FloatPrecision.Standard, FloatMode.Fast, CompileSynchronously = true)]
-// public struct MeshGenJob : IJobParallelFor
-// {
-//     [ReadOnly] public NativeArray<float3> vertexArray;
-//     [ReadOnly] public int lodLevel;
-//     // [WriteOnly] public Mesh mesh;
-
-//     public void Execute(int index)
-//     {
-//         //     meshes[index] = MeshGen.GenerateSingleMesh(vertexArray.ToArray(), lodLevel);
-//     }
-// }
 
 public class MeshGen
 {
@@ -63,43 +47,4 @@ public class MeshGen
 
         return terrainMesh;
     }
-
-    // private static int CalculateTotalLODCount()
-    // {
-    //     return 1;
-    // }
-
-    // private static void GenerateHighResolutionLODs(Mesh[] meshes, NativeArray<float3> vertexArray)
-    // {
-    //     int highestLodCount = Math.Min(3, ChunkGlobals.lodCount);
-    //     for (int i = 0; i < highestLodCount; i++)
-    //     {
-    //         int lodIndex = ChunkGlobals.lodCount - 1 - i;
-    //         meshes[i] = GenerateSingleMesh(vertexArray.ToArray(), lodIndex);
-    //     }
-    // }
-
-    // private static void GenerateLowResolutionLOD(Mesh[] meshes, NativeArray<float3> vertexArray)
-    // {
-    //     if (ChunkGlobals.lodCount > 3)
-    //     {
-    //         meshes[3] = GenerateSingleMesh(vertexArray.ToArray(), 0);
-    //     }
-    // }
-
-    // private static void FlatShading(float3[] vertices, int[] triangles, float2[] uvs, Mesh mesh)
-    // {
-    //     float3[] newVertices = new float3[triangles.Length];
-    //     float2[] newUVs = new float2[triangles.Length];
-    //     for (int i = 0; i < triangles.Length; i++)
-    //     {
-    //         newVertices[i] = vertices[triangles[i]];
-    //         newUVs[i] = uvs[triangles[i]];
-    //         triangles[i] = i;
-    //     }
-    //     mesh.vertices = newVertices;
-    //     mesh.uv = newUVs;
-    //     mesh.triangles = triangles;
-    //     mesh.RecalculateNormals();
-    // }
 }

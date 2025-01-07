@@ -5,43 +5,77 @@ using Unity.Mathematics;
 public class ChunkConstructorManager
 {
     // TODO: Maybe make these arrays with a reasonable size. Somehow get the users cpu specs and adjust the size accordingly.
+    private static readonly int chunksInRenderDistance = Mathf.CeilToInt(ChunkGlobals.renderDistance * ChunkGlobals.renderDistance * math.PI);
     private static readonly List<ChunkConstructor> NoiseJobs = new();
     private static readonly List<ChunkConstructor> TextureJobs = new();
-    // private static readonly List<ChunkConstructor> MeshJobs = new();
     private static readonly List<ChunkConstructor> FinishedConstructors = new();
-
+    private static FixedSizeDeque<ChunkConstructionData> ChunksToGenerate = new(chunksInRenderDistance);
+    private static int MaxMeshTextureJobs = 15;
+    private static int MaxNoiseJobs = MaxMeshTextureJobs * 2;
+    private static HashSet<float2> chunksStartedThisFrame = new();
     public static Transform ParentTransform { get; set; }
 
-    public static void QueueChunkGeneration(float2 position)
+    public static void AddChunkToQueue(float2 position)
     {
-        int chunkX = (int)(position.x / ChunkGlobals.WorldSpaceChunkSize);
-        int chunkY = (int)(position.y / ChunkGlobals.WorldSpaceChunkSize);
-        string chunkName = $"Terrain Chunk: ({chunkX}, {chunkY})";
-
-        GameObject terrainChunk = new(chunkName)
-        {
-            transform = { parent = ParentTransform }
-        };
-
-        Chunk chunkComponent = terrainChunk.AddComponent<Chunk>();
-        chunkComponent.SetParent(terrainChunk);
-        ChunkRegistry.GetGeneratedChunksDictionary().Add(position, chunkComponent);
-
-        StartNoiseJob(position);
+        ChunksToGenerate.AddFront(new ChunkConstructionData { position = position, lod = 0 });
     }
 
-    private static void StartNoiseJob(float2 position)
+    public static HashSet<float2> StartChunkConstructionJobs()
     {
-        var chunkConstructor = new ChunkConstructor();
-        chunkConstructor.StartNoiseJob(position);
-        NoiseJobs.Add(chunkConstructor);
+
+        if (NoiseJobs.Count >= MaxNoiseJobs)
+        {
+            return chunksStartedThisFrame;
+        }
+
+        // int count = 0;
+        while (NoiseJobs.Count < MaxNoiseJobs && ChunksToGenerate.Count > 0)
+        {
+            ChunkConstructionData chunkConstructionData = ChunksToGenerate.PopFront();
+
+            // Debug.Log("Count: " + count);
+            // Debug.Log("NoiseJobs Count: " + NoiseJobs.Count);
+            // Debug.Log("Chunks To Generate Count: " + ChunksToGenerate.Count);
+
+            float2 position = chunkConstructionData.position;
+
+            int chunkX = (int)(position.x / ChunkGlobals.WorldSpaceChunkSize);
+            int chunkY = (int)(position.y / ChunkGlobals.WorldSpaceChunkSize);
+            string chunkName = $"Terrain Chunk: ({chunkX}, {chunkY})";
+
+            GameObject terrainChunk = new(chunkName)
+            {
+                transform = { parent = ParentTransform }
+            };
+
+            Chunk chunkComponent = terrainChunk.AddComponent<Chunk>();
+            chunkComponent.SetParent(terrainChunk);
+            ChunkRegistry.GetGeneratedChunksDictionary().Add(chunkConstructionData.position, chunkComponent);
+
+            var chunkConstructor = new ChunkConstructor();
+            chunkConstructor.StartNoiseJob(chunkConstructionData);
+            NoiseJobs.Add(chunkConstructor);
+
+            chunksStartedThisFrame.Add(chunkConstructionData.position);
+            // count++;
+        }
+
+        return chunksStartedThisFrame;
+    }
+
+    public static bool IsQueuedForConstruction(float2 position)
+    {
+        if (ChunksToGenerate.Contains(new ChunkConstructionData { position = position, lod = 0 }))
+        {
+            return true;
+        }
+        return false;
     }
 
     public static void HandleChunkGeneration()
     {
         ProcessNoiseJobs();
         ProcessTextureJobs();
-        // ProcessMeshJobs();
         InitializeFinishedChunks();
     }
 
@@ -55,8 +89,6 @@ public class ChunkConstructorManager
             {
                 job.StartTextureJob();
                 TextureJobs.Add(job);
-                // job.StartMeshJob();
-                // MeshJobs.Add(job);
                 completedNoiseJobs.Add(job);
             }
         }
@@ -71,8 +103,14 @@ public class ChunkConstructorManager
     {
         var completedTextureJobs = new List<ChunkConstructor>();
 
+        int count = 0;
         foreach (var job in TextureJobs)
         {
+            if (count >= MaxMeshTextureJobs)
+            {
+                break;
+            }
+
             if (job.IsTextureJobComplete())
             {
                 job.CompleteTextureJob();
@@ -80,6 +118,7 @@ public class ChunkConstructorManager
                 FinishedConstructors.Add(job);
                 completedTextureJobs.Add(job);
             }
+            count++;
         }
 
         foreach (var job in completedTextureJobs)
@@ -87,26 +126,6 @@ public class ChunkConstructorManager
             TextureJobs.Remove(job);
         }
     }
-
-    // private static void ProcessMeshJobs()
-    // {
-    //     var completedMeshJobs = new List<ChunkConstructor>();
-
-    //     foreach (var job in MeshJobs)
-    //     {
-    //         if (job.IsMeshJobComplete())
-    //         {
-    //             // job.CompleteMeshJob();
-    //             FinishedConstructors.Add(job);
-    //             completedMeshJobs.Add(job);
-    //         }
-    //     }
-
-    //     foreach (var job in completedMeshJobs)
-    //     {
-    //         TextureJobs.Remove(job);
-    //     }
-    // }
 
     private static void InitializeFinishedChunks()
     {
@@ -121,4 +140,10 @@ public class ChunkConstructorManager
 
         FinishedConstructors.Clear();
     }
+}
+
+public struct ChunkConstructionData
+{
+    public float2 position;
+    public int lod;
 }

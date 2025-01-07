@@ -6,6 +6,7 @@ public class ChunkSystem : MonoBehaviour
     void Start()
     {
         ChunkConstructorManager.ParentTransform = transform;
+        print(Mathf.CeilToInt(ChunkGlobals.renderDistance * ChunkGlobals.renderDistance * math.PI));
     }
 
     void Update()
